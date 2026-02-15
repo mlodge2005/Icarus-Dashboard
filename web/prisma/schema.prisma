@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Bot {
+  id              String   @id @default(cuid())
+  name            String
+  status          String
+  lastHeartbeatAt DateTime?
+  currentTaskId   String?
+  version         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Task {
+  id         String   @id @default(cuid())
+  title      String
+  status     String   // todo | in_progress | done
+  orderIndex Float
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Artifact {
+  id         String   @id @default(cuid())
+  filename   String
+  mimeType   String
+  sizeBytes  Int
+  storageKey String
+  taskId     String?
+  createdAt  DateTime @default(now())
+}
+
+model Tool {
+  id       String   @id @default(cuid())
+  name     String
+  category String
+  enabled  Boolean
+  notes    String?
+  updatedAt DateTime @updatedAt
+
+  @@unique([name])
+}
