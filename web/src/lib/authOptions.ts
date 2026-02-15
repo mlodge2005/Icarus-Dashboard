@@ -1,31 +1,33 @@
 import type { NextAuthOptions } from "next-auth";
-import GitHubProvider from "next-auth/providers/github";
+import GoogleProvider from "next-auth/providers/google";
 
 // Support both our custom env names and NextAuth conventional names.
-const githubId = process.env.AUTH_GITHUB_ID || process.env.GITHUB_ID;
-const githubSecret = process.env.AUTH_GITHUB_SECRET || process.env.GITHUB_SECRET;
-const allowedLogin = (process.env.AUTH_GITHUB_ALLOWED_LOGIN || "mlodge2005").toLowerCase();
+const googleId = process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_ID;
+const googleSecret = process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_SECRET;
+
+// Restrict access to a single Google account email.
+const allowedEmail = (process.env.AUTH_GOOGLE_ALLOWED_EMAIL || "mlodge2005@gmail.com").toLowerCase();
 
 export function getAuthOptions(): NextAuthOptions {
-  if (!githubId || !githubSecret) {
+  if (!googleId || !googleSecret) {
     throw new Error(
-      "Missing GitHub OAuth env vars. Set AUTH_GITHUB_ID + AUTH_GITHUB_SECRET (or GITHUB_ID + GITHUB_SECRET) in Vercel env vars."
+      "Missing Google OAuth env vars. Set AUTH_GOOGLE_ID + AUTH_GOOGLE_SECRET (or GOOGLE_ID + GOOGLE_SECRET) in Vercel env vars."
     );
   }
 
   return {
     secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
     providers: [
-      GitHubProvider({
-        clientId: githubId,
-        clientSecret: githubSecret,
+      GoogleProvider({
+        clientId: googleId,
+        clientSecret: googleSecret,
       }),
     ],
     callbacks: {
       async signIn({ profile }) {
-        const login = (profile as any)?.login;
-        if (!login) return false;
-        return String(login).toLowerCase() === allowedLogin;
+        const email = (profile as any)?.email;
+        if (!email) return false;
+        return String(email).toLowerCase() === allowedEmail;
       },
     },
   };

@@ -3,13 +3,13 @@ import { getServerSession } from "next-auth";
 import { getAuthOptions } from "@/lib/authOptions";
 
 export default async function Home() {
-  const missingOauth = !(process.env.AUTH_GITHUB_ID || process.env.GITHUB_ID) || !(process.env.AUTH_GITHUB_SECRET || process.env.GITHUB_SECRET);
+  const missingOauth = !(process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_ID) || !(process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_SECRET);
   if (missingOauth) {
     return (
       <main style={{ padding: 24, fontFamily: "system-ui" }}>
         <h1>Icarus Dashboard</h1>
         <p>
-          Server is missing GitHub OAuth env vars. Set AUTH_GITHUB_ID + AUTH_GITHUB_SECRET (or GITHUB_ID + GITHUB_SECRET)
+          Server is missing Google OAuth env vars. Set AUTH_GOOGLE_ID + AUTH_GOOGLE_SECRET (or GOOGLE_ID + GOOGLE_SECRET)
           in Vercel, then redeploy.
         </p>
       </main>
