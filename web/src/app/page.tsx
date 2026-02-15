@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { getAuthOptions } from "@/lib/authOptions";
 
 export default async function Home() {
-  const missingOauth = !(process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_ID) || !(process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_SECRET);
+  const missingOauth = !process.env.GOOGLE_ID || !process.env.GOOGLE_SECRET || !process.env.NEXTAUTH_SECRET;
   if (missingOauth) {
     return (
       <main style={{ padding: 24, fontFamily: "system-ui" }}>
