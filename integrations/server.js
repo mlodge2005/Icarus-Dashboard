@@ -7,6 +7,26 @@ import os from 'node:os';
 import crypto from 'node:crypto';
 import { google } from 'googleapis';
 
+const ALLOWED_FILE_ROOTS = [
+  '/home/admin/.openclaw/workspace',
+];
+
+function isPathAllowed(p) {
+  const norm = path.resolve(String(p));
+  return ALLOWED_FILE_ROOTS.some((root) => norm === root || norm.startsWith(root + path.sep));
+}
+
+function b64url(buf) {
+  return Buffer.from(buf)
+    .toString('base64')
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function escapeHeaderValue(v) {
+  // Very small header hardening.
+  return String(v).replace(/[\r\n]/g, ' ').trim();
+}
+
 const {
   INTEG_BIND_HOST = '127.0.0.1',
   INTEG_BIND_PORT = '8789',
@@ -104,7 +124,6 @@ fastify.post('/gmail/send', async (req, reply) => {
   if (!to || !subject || !text) return reply.code(400).send({ error: 'missing to/subject/text' });
 
   if (requireApproval) {
-    // This endpoint is intended to be called by OpenClaw which will enforce approval.
     return reply.code(409).send({
       error: 'approval_required',
       message: `Send requires approval unless to=${GMAIL_ALLOW_SEND_NO_APPROVAL_TO}`
@@ -114,19 +133,16 @@ fastify.post('/gmail/send', async (req, reply) => {
   const client = await authedClient();
   const gmail = google.gmail({ version: 'v1', auth: client });
 
-  // Build raw RFC 2822 message.
   const lines = [
-    `From: ${GMAIL_ACCOUNT}`,
-    `To: ${to}`,
-    `Subject: ${subject}`,
+    `From: ${escapeHeaderValue(GMAIL_ACCOUNT)}`,
+    `To: ${escapeHeaderValue(to)}`,
+    `Subject: ${escapeHeaderValue(subject)}`,
     'MIME-Version: 1.0',
     'Content-Type: text/plain; charset="UTF-8"',
     '',
     text
   ];
-  const raw = Buffer.from(lines.join('\r\n'))
-    .toString('base64')
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+  const raw = b64url(lines.join('\r\n'));
 
   const res = await gmail.users.messages.send({
     userId: 'me',
@@ -134,6 +150,83 @@ fastify.post('/gmail/send', async (req, reply) => {
   });
 
   return { ok: true, id: res.data.id };
+});
+
+fastify.post('/gmail/send-attachments', async (req, reply) => {
+  const body = req.body || {};
+  const to = String(body.to || '').trim();
+  const subject = String(body.subject || '').trim();
+  const text = String(body.text || '').trim();
+  const files = Array.isArray(body.files) ? body.files : [];
+
+  const requireApproval = to.toLowerCase() !== String(GMAIL_ALLOW_SEND_NO_APPROVAL_TO).toLowerCase();
+  if (!to || !subject || !text) return reply.code(400).send({ error: 'missing to/subject/text' });
+  if (requireApproval) {
+    return reply.code(409).send({
+      error: 'approval_required',
+      message: `Send requires approval unless to=${GMAIL_ALLOW_SEND_NO_APPROVAL_TO}`
+    });
+  }
+
+  if (files.length === 0) return reply.code(400).send({ error: 'missing files[]' });
+  if (files.length > 10) return reply.code(400).send({ error: 'too many files (max 10)' });
+
+  const parts = [];
+  const boundary = `----icarus-${crypto.randomBytes(12).toString('hex')}`;
+
+  // text part
+  parts.push(
+    `--${boundary}`,
+    'Content-Type: text/plain; charset="UTF-8"',
+    'Content-Transfer-Encoding: 7bit',
+    '',
+    text,
+    ''
+  );
+
+  for (const f of files) {
+    const filePath = String(f?.path || '').trim();
+    const filename = escapeHeaderValue(f?.filename || path.basename(filePath || 'file'));
+    if (!filePath) return reply.code(400).send({ error: 'files[].path required' });
+    if (!isPathAllowed(filePath)) return reply.code(403).send({ error: 'file path not allowed' });
+
+    const buf = await fs.readFile(filePath);
+    const contentType = escapeHeaderValue(f?.contentType || 'application/octet-stream');
+    const b64 = Buffer.from(buf).toString('base64');
+
+    parts.push(
+      `--${boundary}`,
+      `Content-Type: ${contentType}; name="${filename}"`,
+      'Content-Transfer-Encoding: base64',
+      `Content-Disposition: attachment; filename="${filename}"`,
+      '',
+      b64,
+      ''
+    );
+  }
+
+  parts.push(`--${boundary}--`, '');
+
+  const headers = [
+    `From: ${escapeHeaderValue(GMAIL_ACCOUNT)}`,
+    `To: ${escapeHeaderValue(to)}`,
+    `Subject: ${escapeHeaderValue(subject)}`,
+    'MIME-Version: 1.0',
+    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    '',
+  ];
+
+  const raw = b64url(headers.concat(parts).join('\r\n'));
+
+  const client = await authedClient();
+  const gmail = google.gmail({ version: 'v1', auth: client });
+
+  const res = await gmail.users.messages.send({
+    userId: 'me',
+    requestBody: { raw }
+  });
+
+  return { ok: true, id: res.data.id, files: files.map((x) => ({ path: x.path, filename: x.filename })) };
 });
 
 fastify.listen({ host: INTEG_BIND_HOST, port: Number(INTEG_BIND_PORT) });
