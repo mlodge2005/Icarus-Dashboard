@@ -1,6 +1,4 @@
-import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { getAuthOptions } from "@/lib/authOptions";
+import { auth, signIn, signOut } from "@/auth";
 
 export default async function Home() {
   const missingOauth = !process.env.GOOGLE_ID || !process.env.GOOGLE_SECRET || !process.env.NEXTAUTH_SECRET;
@@ -9,23 +7,27 @@ export default async function Home() {
       <main style={{ padding: 24, fontFamily: "system-ui" }}>
         <h1>Icarus Dashboard</h1>
         <p>
-          Server is missing Google OAuth env vars. Set AUTH_GOOGLE_ID + AUTH_GOOGLE_SECRET (or GOOGLE_ID + GOOGLE_SECRET)
-          in Vercel, then redeploy.
+          Server is missing auth env vars. Set GOOGLE_ID + GOOGLE_SECRET + NEXTAUTH_SECRET in Vercel (Production), then redeploy.
         </p>
       </main>
     );
   }
 
-  const session = await getServerSession(getAuthOptions());
+  const session = await auth();
 
   if (!session) {
     return (
       <main style={{ padding: 24, fontFamily: "system-ui" }}>
         <h1>Icarus Dashboard</h1>
         <p>Login required.</p>
-        <p>
-          <a href="/api/auth/signin">Sign in with Google</a>
-        </p>
+        <form
+          action={async () => {
+            "use server";
+            await signIn("google");
+          }}
+        >
+          <button type="submit">Sign in with Google</button>
+        </form>
       </main>
     );
   }
@@ -46,13 +48,14 @@ export default async function Home() {
       <h2>API Health</h2>
       <pre>{JSON.stringify(health, null, 2)}</pre>
 
-      <p>
-        <a href="/api/auth/signout">Sign out</a>
-      </p>
-
-      <p style={{ marginTop: 24 }}>
-        <Link href="/">Home</Link>
-      </p>
+      <form
+        action={async () => {
+          "use server";
+          await signOut();
+        }}
+      >
+        <button type="submit">Sign out</button>
+      </form>
     </main>
   );
 }
