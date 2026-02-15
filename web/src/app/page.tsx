@@ -1,9 +1,22 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { getAuthOptions } from "@/lib/authOptions";
 
 export default async function Home() {
-  const session = await getServerSession(authOptions);
+  const missingOauth = !(process.env.AUTH_GITHUB_ID || process.env.GITHUB_ID) || !(process.env.AUTH_GITHUB_SECRET || process.env.GITHUB_SECRET);
+  if (missingOauth) {
+    return (
+      <main style={{ padding: 24, fontFamily: "system-ui" }}>
+        <h1>Icarus Dashboard</h1>
+        <p>
+          Server is missing GitHub OAuth env vars. Set AUTH_GITHUB_ID + AUTH_GITHUB_SECRET (or GITHUB_ID + GITHUB_SECRET)
+          in Vercel, then redeploy.
+        </p>
+      </main>
+    );
+  }
+
+  const session = await getServerSession(getAuthOptions());
 
   if (!session) {
     return (
