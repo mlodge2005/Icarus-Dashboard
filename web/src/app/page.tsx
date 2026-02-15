@@ -24,7 +24,7 @@ export default async function Home() {
         <h1>Icarus Dashboard</h1>
         <p>Login required.</p>
         <p>
-          <a href="/api/auth/signin">Sign in with GitHub</a>
+          <a href="/api/auth/signin">Sign in with Google</a>
         </p>
       </main>
     );
