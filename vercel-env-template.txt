@@ -1,0 +1,15 @@
+Vercel Environment Variables (set for Production + Preview)
+
+# Auth.js / NextAuth
+AUTH_SECRET=<generate with: openssl rand -hex 32>
+AUTH_GITHUB_ID=<from GitHub OAuth App>
+AUTH_GITHUB_SECRET=<from GitHub OAuth App>
+AUTH_GITHUB_ALLOWED_LOGIN=mlodge2005
+
+# VPS API
+DASH_API_BASE_URL=https://api.dashboard.studio-khan.com
+DASH_API_KEY=<we will generate on the VPS and set the same value in the VPS API service>
+
+GitHub OAuth App settings:
+- Homepage URL: https://dashboard.studio-khan.com
+- Authorization callback URL: https://dashboard.studio-khan.com/api/auth/callback/github
