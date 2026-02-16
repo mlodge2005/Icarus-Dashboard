@@ -55,7 +55,7 @@ export default async function OverviewPage() {
     <>
       <div className="topbar">
         <div className="h1">Overview</div>
-        <UserMenu email={session.user.email} />
+        <UserMenu email={session.user?.email ?? null} />
       </div>
       <OverviewPanel initial={data} />
     </>
