@@ -1,4 +1,7 @@
 import { auth } from "@/auth";
+import { TaskDetailForm } from "@/components/TaskDetailForm";
+import { prisma } from "@/lib/prisma";
+import { notFound } from "next/navigation";
 
 export default async function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -12,15 +15,19 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
   }
 
   const { id } = await params;
+  const task = await prisma.task.findUnique({ where: { id } });
+  if (!task) return notFound();
 
   return (
-    <>
-      <div className="topbar">
-        <div className="h1">Task</div>
-      </div>
-      <div className="card cardPad">
-        <p style={{ color: "var(--muted)", margin: 0 }}>Task detail UI coming next. Task id: {id}</p>
-      </div>
-    </>
+    <TaskDetailForm
+      task={{
+        id: task.id,
+        title: task.title,
+        status: task.status as "todo" | "in_progress" | "done",
+        notes: task.notes,
+        createdAt: task.createdAt.toISOString(),
+        updatedAt: task.updatedAt.toISOString(),
+      }}
+    />
   );
 }

@@ -1,4 +1,6 @@
 import { auth } from "@/auth";
+import { ArtifactsVault } from "@/components/ArtifactsVault";
+import { prisma } from "@/lib/prisma";
 
 export default async function ArtifactsPage() {
   const session = await auth();
@@ -11,16 +13,7 @@ export default async function ArtifactsPage() {
     );
   }
 
-  return (
-    <>
-      <div className="topbar">
-        <div className="h1">Artifacts</div>
-      </div>
-      <div className="card cardPad">
-        <p style={{ color: "var(--muted)", margin: 0 }}>
-          Artifact vault + presigned upload/download endpoints are next.
-        </p>
-      </div>
-    </>
-  );
+  const artifacts = await prisma.artifact.findMany({ orderBy: { createdAt: "desc" } });
+
+  return <ArtifactsVault artifacts={artifacts.map((a) => ({ ...a, createdAt: a.createdAt.toISOString() }))} />;
 }

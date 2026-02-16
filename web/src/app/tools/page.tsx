@@ -1,4 +1,6 @@
 import { auth } from "@/auth";
+import { ToolsList } from "@/components/ToolsList";
+import { prisma } from "@/lib/prisma";
 
 export default async function ToolsPage() {
   const session = await auth();
@@ -11,16 +13,7 @@ export default async function ToolsPage() {
     );
   }
 
-  return (
-    <>
-      <div className="topbar">
-        <div className="h1">Tools</div>
-      </div>
-      <div className="card cardPad">
-        <p style={{ color: "var(--muted)", margin: 0 }}>
-          Tools inventory + sync endpoint UI is next.
-        </p>
-      </div>
-    </>
-  );
+  const tools = await prisma.tool.findMany({ orderBy: [{ category: "asc" }, { name: "asc" }] });
+
+  return <ToolsList tools={tools} />;
 }
