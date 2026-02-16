@@ -3,7 +3,6 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getS3, bucketName } from "@/lib/s3";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -14,12 +13,25 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   if (!artifact) return NextResponse.json({ error: "not found" }, { status: 404 });
 
   const s3 = getS3();
-  const cmd = new GetObjectCommand({
-    Bucket: bucketName(),
-    Key: artifact.storageKey,
-    ResponseContentDisposition: `attachment; filename="${artifact.filename}"`,
-  });
+  const obj = await s3.send(
+    new GetObjectCommand({
+      Bucket: bucketName(),
+      Key: artifact.storageKey,
+    })
+  );
 
-  const url = await getSignedUrl(s3, cmd, { expiresIn: 300 });
-  return NextResponse.json({ url });
+  if (!obj.Body) return NextResponse.json({ error: "empty body" }, { status: 404 });
+
+  const bytes = await obj.Body.transformToByteArray();
+  const out = new Uint8Array(bytes.length);
+  out.set(bytes);
+
+  return new Response(out, {
+    status: 200,
+    headers: {
+      "content-type": artifact.mimeType || "application/octet-stream",
+      "content-disposition": `attachment; filename="${artifact.filename}"`,
+      "cache-control": "private, no-store",
+    },
+  });
 }
