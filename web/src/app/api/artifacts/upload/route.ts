@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { getS3, bucketName } from "@/lib/s3";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-const MAX_BYTES = 50 * 1024 * 1024;
+const MAX_BYTES = 10 * 1024 * 1024;
 
 export async function POST(req: Request) {
   try {
@@ -26,35 +23,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "file size out of range" }, { status: 400 });
     }
 
-    const now = new Date();
-    const year = now.getUTCFullYear();
-    const month = String(now.getUTCMonth() + 1).padStart(2, "0");
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-    const storageKey = `artifacts/${year}/${month}/${crypto.randomUUID()}-${safeName}`;
-
-    const bytes = await file.arrayBuffer();
-
-    const s3 = getS3();
-    const cmd = new PutObjectCommand({
-      Bucket: bucketName(),
-      Key: storageKey,
-      ContentType: file.type || "application/octet-stream",
-    });
-    const uploadUrl = await getSignedUrl(s3, cmd, { expiresIn: 900 });
-
-    const putRes = await fetch(uploadUrl, {
-      method: "PUT",
-      headers: { "content-type": file.type || "application/octet-stream" },
-      body: bytes,
-    });
-
-    if (!putRes.ok) {
-      const body = await putRes.text().catch(() => "");
-      return NextResponse.json(
-        { error: `upload failed (${putRes.status})`, detail: body.slice(0, 500) },
-        { status: 502 }
-      );
-    }
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const storageKey = `db64:${Buffer.from(bytes).toString("base64")}`;
 
     const taskId = typeof taskIdRaw === "string" && taskIdRaw.trim() ? taskIdRaw : null;
 
