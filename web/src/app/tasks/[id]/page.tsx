@@ -23,7 +23,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
       task={{
         id: task.id,
         title: task.title,
-        status: task.status as "todo" | "in_progress" | "done",
+        status: task.status as "todo" | "in_progress" | "blocked" | "done",
         notes: task.notes,
         createdAt: task.createdAt.toISOString(),
         updatedAt: task.updatedAt.toISOString(),

@@ -14,7 +14,7 @@ type Bot = {
 
 type Overview = {
   bot: Bot;
-  counts: { todo: number; in_progress: number; done: number };
+  counts: { todo: number; in_progress: number; blocked: number; done: number };
 };
 
 type AgentEvent = {
@@ -182,6 +182,10 @@ export function OverviewPanel({ initial }: { initial: Overview }) {
             <div className="kpi">
               <div className="kpiLabel">In Progress</div>
               <div className="kpiValue">{data.counts.in_progress}</div>
+            </div>
+            <div className="kpi">
+              <div className="kpiLabel">Blocked</div>
+              <div className="kpiValue">{data.counts.blocked}</div>
             </div>
             <div className="kpi">
               <div className="kpiLabel">Done</div>

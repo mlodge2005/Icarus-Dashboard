@@ -5,7 +5,7 @@ import { z } from "zod";
 
 const TaskCreateSchema = z.object({
   title: z.string().min(1).max(200),
-  status: z.enum(["todo", "in_progress", "done"]).default("todo"),
+  status: z.enum(["todo", "in_progress", "blocked", "done"]).default("todo"),
 });
 
 async function authorized(req: Request) {
@@ -31,7 +31,7 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const status = url.searchParams.get("status");
-  const where = status && ["todo", "in_progress", "done"].includes(status) ? { status } : undefined;
+  const where = status && ["todo", "in_progress", "blocked", "done"].includes(status) ? { status } : undefined;
 
   const tasks = await prisma.task.findMany({
     where,

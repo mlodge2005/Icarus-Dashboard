@@ -8,14 +8,15 @@ export async function GET() {
 
   const bot = await prisma.bot.findFirst({ orderBy: { updatedAt: "desc" } });
 
-  const [todo, in_progress, done] = await Promise.all([
+  const [todo, in_progress, blocked, done] = await Promise.all([
     prisma.task.count({ where: { status: "todo" } }),
     prisma.task.count({ where: { status: "in_progress" } }),
+    prisma.task.count({ where: { status: "blocked" } }),
     prisma.task.count({ where: { status: "done" } }),
   ]);
 
   return NextResponse.json({
     bot,
-    counts: { todo, in_progress, done },
+    counts: { todo, in_progress, blocked, done },
   });
 }

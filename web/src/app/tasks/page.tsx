@@ -2,10 +2,10 @@ import { auth } from "@/auth";
 import { TaskBoard } from "@/components/TaskBoard";
 import { prisma } from "@/lib/prisma";
 
-type TaskStatus = "todo" | "in_progress" | "done";
+type TaskStatus = "todo" | "in_progress" | "blocked" | "done";
 
 function toStatus(status: string): TaskStatus {
-  if (status === "todo" || status === "in_progress" || status === "done") return status;
+  if (status === "todo" || status === "in_progress" || status === "blocked" || status === "done") return status;
   return "todo";
 }
 

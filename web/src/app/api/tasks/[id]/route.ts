@@ -5,7 +5,7 @@ import { z } from "zod";
 
 const TaskPatchSchema = z.object({
   title: z.string().min(1).max(200).optional(),
-  status: z.enum(["todo", "in_progress", "done"]).optional(),
+  status: z.enum(["todo", "in_progress", "blocked", "done"]).optional(),
   orderIndex: z.number().finite().optional(),
   notes: z.string().max(20000).nullable().optional(),
 });

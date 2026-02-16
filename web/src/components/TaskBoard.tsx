@@ -21,7 +21,7 @@ import { CSS } from "@dnd-kit/utilities";
 import Link from "next/link";
 import { formatDistanceToNowStrict } from "date-fns";
 
-type TaskStatus = "todo" | "in_progress" | "done";
+type TaskStatus = "todo" | "in_progress" | "blocked" | "done";
 
 type Task = {
   id: string;
@@ -35,6 +35,7 @@ type Task = {
 const STATUS_COLUMNS: Array<{ key: TaskStatus; label: string }> = [
   { key: "todo", label: "Todo" },
   { key: "in_progress", label: "In Progress" },
+  { key: "blocked", label: "Blocked" },
   { key: "done", label: "Done" },
 ];
 
@@ -45,7 +46,7 @@ function colId(status: TaskStatus) {
 function parseCol(id: string): TaskStatus | null {
   if (!id.startsWith("col:")) return null;
   const raw = id.slice(4);
-  return raw === "todo" || raw === "in_progress" || raw === "done" ? raw : null;
+  return raw === "todo" || raw === "in_progress" || raw === "blocked" || raw === "done" ? raw : null;
 }
 
 function computeOrderIndex(list: Task[], insertIndex: number) {
@@ -105,7 +106,7 @@ export function TaskBoard({ initialTasks }: { initialTasks: Task[] }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
   const byStatus = useMemo(() => {
-    const grouped: Record<TaskStatus, Task[]> = { todo: [], in_progress: [], done: [] };
+    const grouped: Record<TaskStatus, Task[]> = { todo: [], in_progress: [], blocked: [], done: [] };
     for (const t of tasks) grouped[t.status].push(t);
     for (const k of Object.keys(grouped) as TaskStatus[]) grouped[k].sort((a, b) => a.orderIndex - b.orderIndex);
     return grouped;

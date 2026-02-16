@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-type TaskStatus = "todo" | "in_progress" | "done";
+type TaskStatus = "todo" | "in_progress" | "blocked" | "done";
 
 type Task = {
   id: string;
@@ -43,6 +43,7 @@ export function TaskDetailForm({ task }: { task: Task }) {
           <select className="input" value={status} onChange={(e) => setStatus(e.target.value as TaskStatus)}>
             <option value="todo">Todo</option>
             <option value="in_progress">In Progress</option>
+            <option value="blocked">Blocked</option>
             <option value="done">Done</option>
           </select>
           <button className="btn" onClick={() => void save()} disabled={saving || !title.trim()}>
