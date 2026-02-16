@@ -33,6 +33,14 @@ type AgentState = {
   events?: AgentEvent[];
 };
 
+type TaskLite = {
+  id: string;
+  title: string;
+  status: "todo" | "in_progress" | "blocked" | "done";
+  notes: string | null;
+  updatedAt: string;
+};
+
 function compact(input: string, max = 120) {
   const oneLine = input.replace(/\s+/g, " ").trim();
   if (!oneLine) return "—";
@@ -98,6 +106,34 @@ function parseEventDetail(detail: string | null): ParsedDetail {
   return { title, meta: lines };
 }
 
+function getQueueMonitor(notes: string | null) {
+  const src = String(notes || "");
+  const m = src.match(/^\[queue-monitor\]\s+polling=(\w+)\s+lastPollAt=([^\n]+)/m);
+  if (!m) return null;
+  return { polling: m[1], lastPollAt: m[2] };
+}
+
+function latestCommandEvent(events: AgentEvent[] | undefined) {
+  if (!events?.length) return null;
+  for (const ev of events) {
+    const idx = (ev.detail || "").indexOf(":");
+    if (idx <= 0) continue;
+    const eventName = (ev.detail || "").slice(0, idx).trim();
+    const payload = (ev.detail || "").slice(idx + 1).trim();
+    const meta = parseMeta(payload);
+    if (eventName === "after_tool_call" && (meta.tool === "exec" || meta.tool === "process")) {
+      return {
+        when: ev.createdAt,
+        status: meta.status || "unknown",
+        cmd: meta.cmd || meta.params || "—",
+        durationMs: meta.durationMs || null,
+        error: meta.error || null,
+      };
+    }
+  }
+  return null;
+}
+
 function statusFromHeartbeat(last: Date | null) {
   if (!last) return { label: "Offline", color: "var(--bad)" };
   const ageSec = (Date.now() - last.getTime()) / 1000;
@@ -114,14 +150,16 @@ export function OverviewPanel({ initial }: { initial: Overview }) {
     subagentsRunning: 0,
     updatedAt: initial.bot?.lastHeartbeatAt || null,
   });
+  const [activeTask, setActiveTask] = useState<TaskLite | null>(null);
 
   useEffect(() => {
     let stop = false;
     const tick = async () => {
       try {
-        const [overviewRes, stateRes] = await Promise.all([
+        const [overviewRes, stateRes, tasksRes] = await Promise.all([
           fetch("/api/overview", { cache: "no-store" }),
           fetch("/api/agent-state", { cache: "no-store" }),
+          fetch("/api/tasks?status=in_progress", { cache: "no-store" }),
         ]);
 
         if (overviewRes.ok) {
@@ -132,6 +170,11 @@ export function OverviewPanel({ initial }: { initial: Overview }) {
         if (stateRes.ok) {
           const state = (await stateRes.json()) as AgentState;
           if (!stop) setAgentState(state);
+        }
+
+        if (tasksRes.ok) {
+          const json = (await tasksRes.json()) as { tasks?: TaskLite[] };
+          if (!stop) setActiveTask((json.tasks || [])[0] ?? null);
         }
       } catch {
         // ignore transient poll errors
@@ -224,33 +267,47 @@ export function OverviewPanel({ initial }: { initial: Overview }) {
 
       <div style={{ height: 14 }} />
       <div className="card cardPad">
-        <div style={{ fontWeight: 650, marginBottom: 8 }}>Recent activity</div>
-        {!agentState.events || agentState.events.length === 0 ? (
-          <div style={{ color: "var(--muted)", fontSize: 13 }}>No activity events yet.</div>
-        ) : (
-          <div className="grid" style={{ gap: 8 }}>
-            {agentState.events.slice(0, 10).map((ev) => (
-              <div key={ev.id} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 10 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12, color: "var(--muted)" }}>
-                  <span>{ev.mode}</span>
-                  <span>{formatDistanceToNowStrict(new Date(ev.createdAt), { addSuffix: true })}</span>
+        <div style={{ fontWeight: 650, marginBottom: 8 }}>Queue monitor</div>
+        {(() => {
+          const monitor = getQueueMonitor(activeTask?.notes || null);
+          const lastCmd = latestCommandEvent(agentState.events);
+          return (
+            <div className="grid" style={{ gap: 8 }}>
+              <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 10 }}>
+                <div style={{ fontSize: 12, color: "var(--muted)" }}>Polling</div>
+                <div style={{ marginTop: 4, fontSize: 13 }}>
+                  {monitor ? `on · last ${formatDistanceToNowStrict(new Date(monitor.lastPollAt), { addSuffix: true })}` : "unknown"}
                 </div>
-                {(() => {
-                  const d = parseEventDetail(ev.detail);
-                  return (
-                    <div style={{ marginTop: 4 }}>
-                      <div style={{ fontSize: 13 }}>{d.title}</div>
-                      {d.meta.map((line, i) => (
-                        <div key={i} style={{ fontSize: 12, color: "var(--muted)", marginTop: 3 }}>{line}</div>
-                      ))}
-                    </div>
-                  );
-                })()}
-                <div style={{ marginTop: 4, color: "var(--muted)", fontSize: 12 }}>sub-agents: {ev.subagentsRunning}</div>
+                <div style={{ marginTop: 4, fontSize: 12, color: "var(--muted)" }}>
+                  interval: 60s when no active handoff needed
+                </div>
               </div>
-            ))}
-          </div>
-        )}
+
+              <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 10 }}>
+                <div style={{ fontSize: 12, color: "var(--muted)" }}>Active queue task</div>
+                <div style={{ marginTop: 4, fontSize: 13 }}>{activeTask?.title || "none"}</div>
+                <div style={{ marginTop: 4, fontSize: 12, color: "var(--muted)" }}>
+                  status: {activeTask?.status || "—"}
+                </div>
+              </div>
+
+              <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 10 }}>
+                <div style={{ fontSize: 12, color: "var(--muted)" }}>Last command completion</div>
+                {lastCmd ? (
+                  <>
+                    <div style={{ marginTop: 4, fontSize: 13 }}>
+                      {lastCmd.status}{lastCmd.durationMs ? ` · ${lastCmd.durationMs}ms` : ""} · {formatDistanceToNowStrict(new Date(lastCmd.when), { addSuffix: true })}
+                    </div>
+                    <div style={{ marginTop: 4, fontSize: 12, color: "var(--muted)" }}>cmd: {compact(lastCmd.cmd, 160)}</div>
+                    {lastCmd.error ? <div style={{ marginTop: 4, fontSize: 12, color: "var(--bad)" }}>error: {compact(lastCmd.error, 140)}</div> : null}
+                  </>
+                ) : (
+                  <div style={{ marginTop: 4, fontSize: 13, color: "var(--muted)" }}>No command completion event yet.</div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       <div style={{ height: 14 }} />

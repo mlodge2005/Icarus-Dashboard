@@ -13,12 +13,19 @@ type Task = {
   updatedAt: string;
 };
 
+function getPollIndicator(notes: string) {
+  const m = notes.match(/^\[queue-monitor\]\s+polling=(\w+)\s+lastPollAt=([^\n]+)/m);
+  if (!m) return null;
+  return { polling: m[1], lastPollAt: m[2] };
+}
+
 export function TaskDetailForm({ task }: { task: Task }) {
   const [title, setTitle] = useState(task.title);
   const [status, setStatus] = useState<TaskStatus>(task.status);
   const [notes, setNotes] = useState(task.notes ?? "");
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const poll = getPollIndicator(notes);
 
   async function save() {
     setSaving(true);
@@ -57,7 +64,16 @@ export function TaskDetailForm({ task }: { task: Task }) {
       </div>
 
       <div className="card cardPad" style={{ marginBottom: 12 }}>
-        <div style={{ color: "var(--muted)", fontSize: 12, marginBottom: 6 }}>Notes</div>
+        <div style={{ color: "var(--muted)", fontSize: 12, marginBottom: 6, display: "flex", justifyContent: "space-between", gap: 8 }}>
+          <span>Notes</span>
+          {poll ? (
+            <span>
+              Queue poll: {poll.polling} · last {new Date(poll.lastPollAt).toLocaleString()}
+            </span>
+          ) : (
+            <span>Queue poll: unknown</span>
+          )}
+        </div>
         <textarea className="textarea" value={notes} onChange={(e) => setNotes(e.target.value)} />
       </div>
 
