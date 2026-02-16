@@ -21,6 +21,7 @@ function humanSize(n: number) {
 export function ArtifactsVault({ artifacts }: { artifacts: Artifact[] }) {
   const [items, setItems] = useState<Artifact[]>(artifacts);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadErr, setUploadErr] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -42,6 +43,18 @@ export function ArtifactsVault({ artifacts }: { artifacts: Artifact[] }) {
       URL.revokeObjectURL(url);
     } finally {
       setLoadingId(null);
+    }
+  }
+
+  async function removeArtifact(id: string) {
+    if (!confirm("Delete this artifact?")) return;
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/artifacts/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("delete failed");
+      setItems((prev) => prev.filter((x) => x.id !== id));
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -105,9 +118,14 @@ export function ArtifactsVault({ artifacts }: { artifacts: Artifact[] }) {
                     {a.mimeType} · {humanSize(a.sizeBytes)} · {new Date(a.createdAt).toLocaleString()}
                   </div>
                 </div>
-                <button className="btn" onClick={() => void download(a.id, a.filename)} disabled={loadingId === a.id}>
-                  {loadingId === a.id ? "Opening..." : "Download"}
-                </button>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button className="btn" onClick={() => void download(a.id, a.filename)} disabled={loadingId === a.id || deletingId === a.id}>
+                    {loadingId === a.id ? "Opening..." : "Download"}
+                  </button>
+                  <button className="btn" onClick={() => void removeArtifact(a.id)} disabled={deletingId === a.id || loadingId === a.id}>
+                    {deletingId === a.id ? "Deleting..." : "Delete"}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
