@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getS3, bucketName } from "@/lib/s3";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const MAX_BYTES = 50 * 1024 * 1024;
 
@@ -30,17 +31,29 @@ export async function POST(req: Request) {
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
   const storageKey = `artifacts/${year}/${month}/${crypto.randomUUID()}-${safeName}`;
 
-  const bytes = Buffer.from(await file.arrayBuffer());
+  const bytes = await file.arrayBuffer();
 
   const s3 = getS3();
-  await s3.send(
-    new PutObjectCommand({
-      Bucket: bucketName(),
-      Key: storageKey,
-      Body: bytes,
-      ContentType: file.type || "application/octet-stream",
-    })
-  );
+  const cmd = new PutObjectCommand({
+    Bucket: bucketName(),
+    Key: storageKey,
+    ContentType: file.type || "application/octet-stream",
+  });
+  const uploadUrl = await getSignedUrl(s3, cmd, { expiresIn: 900 });
+
+  const putRes = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: { "content-type": file.type || "application/octet-stream" },
+    body: bytes,
+  });
+
+  if (!putRes.ok) {
+    const body = await putRes.text().catch(() => "");
+    return NextResponse.json(
+      { error: `upload failed (${putRes.status})`, detail: body.slice(0, 500) },
+      { status: 502 }
+    );
+  }
 
   const taskId = typeof taskIdRaw === "string" && taskIdRaw.trim() ? taskIdRaw : null;
 
