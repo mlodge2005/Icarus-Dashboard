@@ -1,13 +1,19 @@
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 import { formatDistanceToNowStrict } from "date-fns";
 
 async function getOverview() {
-  const res = await fetch(`${process.env.APP_BASE_URL}/api/overview`, { cache: "no-store" });
-  if (!res.ok) throw new Error("overview fetch failed");
-  return res.json() as Promise<{
-    bot: null | { id: string; name: string; status: string; lastHeartbeatAt: string | null; currentTaskId: string | null; version: string | null };
-    counts: { todo: number; in_progress: number; done: number };
-  }>;
+  const bot = await prisma.bot.findFirst({ orderBy: { updatedAt: "desc" } });
+  const [todo, in_progress, done] = await Promise.all([
+    prisma.task.count({ where: { status: "todo" } }),
+    prisma.task.count({ where: { status: "in_progress" } }),
+    prisma.task.count({ where: { status: "done" } }),
+  ]);
+
+  return {
+    bot,
+    counts: { todo, in_progress, done },
+  };
 }
 
 function statusFromHeartbeat(last: Date | null) {
@@ -29,7 +35,24 @@ export default async function OverviewPage() {
     );
   }
 
-  const data = await getOverview();
+  let data: Awaited<ReturnType<typeof getOverview>>;
+  try {
+    data = await getOverview();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return (
+      <div className="card cardPad">
+        <div className="h1">Overview</div>
+        <p style={{ color: "var(--muted)" }}>
+          Server error loading overview. Check Vercel runtime logs and ensure Neon env vars + Prisma migrations are applied.
+        </p>
+        <div style={{ marginTop: 10, fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: 12, color: "var(--muted)" }}>
+          {msg}
+        </div>
+      </div>
+    );
+  }
+
   const last = data.bot?.lastHeartbeatAt ? new Date(data.bot.lastHeartbeatAt) : null;
   const s = statusFromHeartbeat(last);
 
