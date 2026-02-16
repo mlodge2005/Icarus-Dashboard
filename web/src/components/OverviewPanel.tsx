@@ -17,6 +17,13 @@ type Overview = {
   counts: { todo: number; in_progress: number; done: number };
 };
 
+type AgentState = {
+  mode: string;
+  detail: string | null;
+  subagentsRunning: number;
+  updatedAt: string | null;
+};
+
 function statusFromHeartbeat(last: Date | null) {
   if (!last) return { label: "Offline", color: "var(--bad)" };
   const ageSec = (Date.now() - last.getTime()) / 1000;
@@ -27,20 +34,36 @@ function statusFromHeartbeat(last: Date | null) {
 
 export function OverviewPanel({ initial }: { initial: Overview }) {
   const [data, setData] = useState<Overview>(initial);
+  const [agentState, setAgentState] = useState<AgentState>({
+    mode: initial.bot?.status || "idle",
+    detail: initial.bot?.currentTaskId || null,
+    subagentsRunning: 0,
+    updatedAt: initial.bot?.lastHeartbeatAt || null,
+  });
 
   useEffect(() => {
     let stop = false;
     const tick = async () => {
       try {
-        const res = await fetch("/api/overview", { cache: "no-store" });
-        if (!res.ok) return;
-        const json = (await res.json()) as Overview;
-        if (!stop) setData(json);
+        const [overviewRes, stateRes] = await Promise.all([
+          fetch("/api/overview", { cache: "no-store" }),
+          fetch("/api/agent-state", { cache: "no-store" }),
+        ]);
+
+        if (overviewRes.ok) {
+          const json = (await overviewRes.json()) as Overview;
+          if (!stop) setData(json);
+        }
+
+        if (stateRes.ok) {
+          const state = (await stateRes.json()) as AgentState;
+          if (!stop) setAgentState(state);
+        }
       } catch {
         // ignore transient poll errors
       }
     };
-    const id = window.setInterval(() => void tick(), 15000);
+    const id = window.setInterval(() => void tick(), 10000);
     void tick();
     return () => {
       stop = true;
@@ -91,6 +114,23 @@ export function OverviewPanel({ initial }: { initial: Overview }) {
               <div className="kpiValue">{data.counts.done}</div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div style={{ height: 14 }} />
+
+      <div className="card cardPad">
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 8 }}>
+          <div style={{ fontWeight: 650 }}>Live agent state</div>
+          <span className="badge">
+            <span className="dot" style={{ background: agentState.mode === "blocked" || agentState.mode === "error" ? "var(--bad)" : agentState.mode === "working" || agentState.mode === "subagent" ? "var(--warn)" : "var(--good)" }} />
+            {agentState.mode || "idle"}
+          </span>
+        </div>
+        <div style={{ fontSize: 13 }}>{agentState.detail || "—"}</div>
+        <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 6 }}>
+          Sub-agents running: {agentState.subagentsRunning ?? 0}
+          {agentState.updatedAt ? ` · Updated ${formatDistanceToNowStrict(new Date(agentState.updatedAt), { addSuffix: true })}` : ""}
         </div>
       </div>
 
