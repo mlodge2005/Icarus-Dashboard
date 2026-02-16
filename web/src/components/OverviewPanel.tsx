@@ -51,31 +51,51 @@ function parseMeta(payload: string) {
   return out;
 }
 
-function humanizeEventDetail(detail: string | null) {
-  if (!detail) return "—";
+type ParsedDetail = {
+  title: string;
+  meta: string[];
+};
+
+function parseEventDetail(detail: string | null): ParsedDetail {
+  if (!detail) return { title: "—", meta: [] };
 
   const idx = detail.indexOf(":");
-  if (idx <= 0) return compact(detail, 140);
+  if (idx <= 0) return { title: compact(detail, 140), meta: [] };
 
   const event = detail.slice(0, idx).trim();
   const payload = detail.slice(idx + 1).trim();
   const meta = parseMeta(payload);
-  const action = meta.action ? compact(meta.action, 80) : "";
-  const tool = meta.tool ? ` · ${meta.tool}` : "";
-  const status = meta.status ? ` · ${meta.status}` : "";
-  const dur = meta.durationMs ? ` · ${meta.durationMs}ms` : "";
 
-  if (action) return `${action}${tool}${status}${dur}`;
+  const title = meta.action
+    ? compact(meta.action, 90)
+    : event === "message_sending"
+      ? "Replying to user"
+      : event === "message_sent"
+        ? "Reply sent"
+        : event === "agent_end"
+          ? "Turn complete"
+          : event === "session_start"
+            ? "Session started"
+            : event === "session_end"
+              ? "Session ended"
+              : event === "gateway_start"
+                ? "Gateway online"
+                : event === "gateway_stop"
+                  ? "Gateway stopping"
+                  : compact(`${event}: ${payload}`, 140);
 
-  if (event === "message_sending") return "Replying to user";
-  if (event === "message_sent") return "Reply sent";
-  if (event === "agent_end") return "Turn complete";
-  if (event === "session_start") return "Session started";
-  if (event === "session_end") return "Session ended";
-  if (event === "gateway_start") return "Gateway online";
-  if (event === "gateway_stop") return "Gateway stopping";
+  const lines: string[] = [];
+  if (meta.tool) lines.push(`Tool: ${compact(meta.tool, 40)}`);
+  if (meta.cmd) lines.push(`Command: ${compact(meta.cmd, 160)}`);
+  else if (meta.params && (event === "before_tool_call" || event === "after_tool_call")) lines.push(`Params: ${compact(meta.params, 160)}`);
 
-  return compact(`${event}: ${payload}`, 140);
+  const statusBits: string[] = [];
+  if (meta.status) statusBits.push(meta.status);
+  if (meta.durationMs) statusBits.push(`${meta.durationMs}ms`);
+  if (statusBits.length) lines.push(`Meta: ${statusBits.join(" · ")}`);
+  if (meta.error) lines.push(`Error: ${compact(meta.error, 160)}`);
+
+  return { title, meta: lines };
 }
 
 function statusFromHeartbeat(last: Date | null) {
@@ -181,7 +201,17 @@ export function OverviewPanel({ initial }: { initial: Overview }) {
             {agentState.mode || "idle"}
           </span>
         </div>
-        <div style={{ fontSize: 13 }}>{humanizeEventDetail(agentState.detail)}</div>
+        {(() => {
+          const d = parseEventDetail(agentState.detail);
+          return (
+            <div>
+              <div style={{ fontSize: 13 }}>{d.title}</div>
+              {d.meta.map((line, i) => (
+                <div key={i} style={{ fontSize: 12, color: "var(--muted)", marginTop: 3 }}>{line}</div>
+              ))}
+            </div>
+          );
+        })()}
         <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 6 }}>
           Sub-agents running: {agentState.subagentsRunning ?? 0}
           {agentState.updatedAt ? ` · Updated ${formatDistanceToNowStrict(new Date(agentState.updatedAt), { addSuffix: true })}` : ""}
@@ -201,7 +231,17 @@ export function OverviewPanel({ initial }: { initial: Overview }) {
                   <span>{ev.mode}</span>
                   <span>{formatDistanceToNowStrict(new Date(ev.createdAt), { addSuffix: true })}</span>
                 </div>
-                <div style={{ marginTop: 4, fontSize: 13 }}>{humanizeEventDetail(ev.detail)}</div>
+                {(() => {
+                  const d = parseEventDetail(ev.detail);
+                  return (
+                    <div style={{ marginTop: 4 }}>
+                      <div style={{ fontSize: 13 }}>{d.title}</div>
+                      {d.meta.map((line, i) => (
+                        <div key={i} style={{ fontSize: 12, color: "var(--muted)", marginTop: 3 }}>{line}</div>
+                      ))}
+                    </div>
+                  );
+                })()}
                 <div style={{ marginTop: 4, color: "var(--muted)", fontSize: 12 }}>sub-agents: {ev.subagentsRunning}</div>
               </div>
             ))}
