@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 const MODES = new Set(["idle", "working", "waiting", "blocked", "subagent", "online", "error"]);
 
@@ -19,9 +20,29 @@ async function authorized(req: Request) {
   return !!expected && key === expected;
 }
 
+async function ensureEventsTable() {
+  await prisma.$executeRawUnsafe(`
+    CREATE TABLE IF NOT EXISTS "AgentEvent" (
+      id BIGSERIAL PRIMARY KEY,
+      mode TEXT NOT NULL,
+      detail TEXT,
+      subagents_running INT NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+}
+
 export async function GET() {
   const bot = await prisma.bot.findFirst({ orderBy: { updatedAt: "desc" } });
   const detail = bot?.currentTaskId ?? null;
+
+  await ensureEventsTable();
+  const rows = await prisma.$queryRaw<Array<{ id: bigint; mode: string; detail: string | null; subagents_running: number; created_at: Date }>>(Prisma.sql`
+    SELECT id, mode, detail, subagents_running, created_at
+    FROM "AgentEvent"
+    ORDER BY created_at DESC
+    LIMIT 20
+  `);
 
   return NextResponse.json({
     mode: bot?.status ?? "idle",
@@ -29,6 +50,13 @@ export async function GET() {
     subagentsRunning: parseSubagents(detail),
     updatedAt: bot?.updatedAt?.toISOString() ?? null,
     lastHeartbeatAt: bot?.lastHeartbeatAt?.toISOString() ?? null,
+    events: rows.map((r) => ({
+      id: String(r.id),
+      mode: r.mode,
+      detail: r.detail,
+      subagentsRunning: r.subagents_running,
+      createdAt: r.created_at.toISOString(),
+    })),
   });
 }
 
@@ -62,6 +90,12 @@ export async function POST(req: Request) {
       lastHeartbeatAt: new Date(),
     },
   });
+
+  await ensureEventsTable();
+  await prisma.$executeRaw(Prisma.sql`
+    INSERT INTO "AgentEvent" (mode, detail, subagents_running)
+    VALUES (${mode}, ${detail || null}, ${Math.trunc(subagents)})
+  `);
 
   return NextResponse.json({ ok: true, bot });
 }

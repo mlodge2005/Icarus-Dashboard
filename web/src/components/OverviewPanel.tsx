@@ -17,11 +17,20 @@ type Overview = {
   counts: { todo: number; in_progress: number; done: number };
 };
 
+type AgentEvent = {
+  id: string;
+  mode: string;
+  detail: string | null;
+  subagentsRunning: number;
+  createdAt: string;
+};
+
 type AgentState = {
   mode: string;
   detail: string | null;
   subagentsRunning: number;
   updatedAt: string | null;
+  events?: AgentEvent[];
 };
 
 function statusFromHeartbeat(last: Date | null) {
@@ -132,6 +141,27 @@ export function OverviewPanel({ initial }: { initial: Overview }) {
           Sub-agents running: {agentState.subagentsRunning ?? 0}
           {agentState.updatedAt ? ` · Updated ${formatDistanceToNowStrict(new Date(agentState.updatedAt), { addSuffix: true })}` : ""}
         </div>
+      </div>
+
+      <div style={{ height: 14 }} />
+      <div className="card cardPad">
+        <div style={{ fontWeight: 650, marginBottom: 8 }}>Recent activity</div>
+        {!agentState.events || agentState.events.length === 0 ? (
+          <div style={{ color: "var(--muted)", fontSize: 13 }}>No activity events yet.</div>
+        ) : (
+          <div className="grid" style={{ gap: 8 }}>
+            {agentState.events.slice(0, 10).map((ev) => (
+              <div key={ev.id} style={{ border: "1px solid var(--border)", borderRadius: 10, padding: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, fontSize: 12, color: "var(--muted)" }}>
+                  <span>{ev.mode}</span>
+                  <span>{formatDistanceToNowStrict(new Date(ev.createdAt), { addSuffix: true })}</span>
+                </div>
+                <div style={{ marginTop: 4, fontSize: 13 }}>{ev.detail || "—"}</div>
+                <div style={{ marginTop: 4, color: "var(--muted)", fontSize: 12 }}>sub-agents: {ev.subagentsRunning}</div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div style={{ height: 14 }} />
