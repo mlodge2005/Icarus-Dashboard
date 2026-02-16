@@ -33,6 +33,51 @@ type AgentState = {
   events?: AgentEvent[];
 };
 
+function compact(input: string, max = 120) {
+  const oneLine = input.replace(/\s+/g, " ").trim();
+  if (!oneLine) return "—";
+  return oneLine.length > max ? `${oneLine.slice(0, max - 1)}…` : oneLine;
+}
+
+function parseMeta(payload: string) {
+  const out: Record<string, string> = {};
+  for (const part of payload.split(";")) {
+    const i = part.indexOf("=");
+    if (i <= 0) continue;
+    const k = part.slice(0, i).trim();
+    const v = part.slice(i + 1).trim();
+    if (k) out[k] = v;
+  }
+  return out;
+}
+
+function humanizeEventDetail(detail: string | null) {
+  if (!detail) return "—";
+
+  const idx = detail.indexOf(":");
+  if (idx <= 0) return compact(detail, 140);
+
+  const event = detail.slice(0, idx).trim();
+  const payload = detail.slice(idx + 1).trim();
+  const meta = parseMeta(payload);
+  const action = meta.action ? compact(meta.action, 80) : "";
+  const tool = meta.tool ? ` · ${meta.tool}` : "";
+  const status = meta.status ? ` · ${meta.status}` : "";
+  const dur = meta.durationMs ? ` · ${meta.durationMs}ms` : "";
+
+  if (action) return `${action}${tool}${status}${dur}`;
+
+  if (event === "message_sending") return "Replying to user";
+  if (event === "message_sent") return "Reply sent";
+  if (event === "agent_end") return "Turn complete";
+  if (event === "session_start") return "Session started";
+  if (event === "session_end") return "Session ended";
+  if (event === "gateway_start") return "Gateway online";
+  if (event === "gateway_stop") return "Gateway stopping";
+
+  return compact(`${event}: ${payload}`, 140);
+}
+
 function statusFromHeartbeat(last: Date | null) {
   if (!last) return { label: "Offline", color: "var(--bad)" };
   const ageSec = (Date.now() - last.getTime()) / 1000;
@@ -136,7 +181,7 @@ export function OverviewPanel({ initial }: { initial: Overview }) {
             {agentState.mode || "idle"}
           </span>
         </div>
-        <div style={{ fontSize: 13 }}>{agentState.detail || "—"}</div>
+        <div style={{ fontSize: 13 }}>{humanizeEventDetail(agentState.detail)}</div>
         <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 6 }}>
           Sub-agents running: {agentState.subagentsRunning ?? 0}
           {agentState.updatedAt ? ` · Updated ${formatDistanceToNowStrict(new Date(agentState.updatedAt), { addSuffix: true })}` : ""}
@@ -156,7 +201,7 @@ export function OverviewPanel({ initial }: { initial: Overview }) {
                   <span>{ev.mode}</span>
                   <span>{formatDistanceToNowStrict(new Date(ev.createdAt), { addSuffix: true })}</span>
                 </div>
-                <div style={{ marginTop: 4, fontSize: 13 }}>{ev.detail || "—"}</div>
+                <div style={{ marginTop: 4, fontSize: 13 }}>{humanizeEventDetail(ev.detail)}</div>
                 <div style={{ marginTop: 4, color: "var(--muted)", fontSize: 12 }}>sub-agents: {ev.subagentsRunning}</div>
               </div>
             ))}
