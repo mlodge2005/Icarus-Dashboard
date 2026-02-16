@@ -5,14 +5,36 @@ import { z } from "zod";
 
 const TaskCreateSchema = z.object({
   title: z.string().min(1).max(200),
-  status: z.enum(["todo", "in_progress", "done"]),
+  status: z.enum(["todo", "in_progress", "done"]).default("todo"),
 });
 
-export async function GET() {
+async function authorized(req: Request) {
   const session = await auth();
-  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (session) return true;
+  const key = req.headers.get("x-api-key") || "";
+  const expected = process.env.DASH_API_KEY || "";
+  return !!expected && key === expected;
+}
+
+async function moveOtherInProgressToTodo(exceptTaskId?: string) {
+  await prisma.task.updateMany({
+    where: {
+      status: "in_progress",
+      ...(exceptTaskId ? { NOT: { id: exceptTaskId } } : {}),
+    },
+    data: { status: "todo" },
+  });
+}
+
+export async function GET(req: Request) {
+  if (!(await authorized(req))) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const url = new URL(req.url);
+  const status = url.searchParams.get("status");
+  const where = status && ["todo", "in_progress", "done"].includes(status) ? { status } : undefined;
 
   const tasks = await prisma.task.findMany({
+    where,
     orderBy: [{ status: "asc" }, { orderIndex: "asc" }, { updatedAt: "desc" }],
   });
 
@@ -20,8 +42,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const session = await auth();
-  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!(await authorized(req))) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const json = await req.json().catch(() => null);
   const parsed = TaskCreateSchema.safeParse(json);
@@ -29,7 +50,10 @@ export async function POST(req: Request) {
 
   const { title, status } = parsed.data;
 
-  // put new tasks at the bottom of the column
+  if (status === "in_progress") {
+    await moveOtherInProgressToTodo();
+  }
+
   const last = await prisma.task.findFirst({
     where: { status },
     orderBy: { orderIndex: "desc" },

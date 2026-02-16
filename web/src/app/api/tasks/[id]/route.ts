@@ -10,9 +10,23 @@ const TaskPatchSchema = z.object({
   notes: z.string().max(20000).nullable().optional(),
 });
 
-export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
+async function authorized(req: Request) {
   const session = await auth();
-  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (session) return true;
+  const key = req.headers.get("x-api-key") || "";
+  const expected = process.env.DASH_API_KEY || "";
+  return !!expected && key === expected;
+}
+
+async function moveOtherInProgressToTodo(exceptTaskId: string) {
+  await prisma.task.updateMany({
+    where: { status: "in_progress", NOT: { id: exceptTaskId } },
+    data: { status: "todo" },
+  });
+}
+
+export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }) {
+  if (!(await authorized(req))) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const { id } = await ctx.params;
   const json = await req.json().catch(() => null);
@@ -20,6 +34,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
   if (!parsed.success) return NextResponse.json({ error: "invalid body" }, { status: 400 });
 
   const data = parsed.data;
+
+  if (data.status === "in_progress") {
+    await moveOtherInProgressToTodo(id);
+  }
 
   const task = await prisma.task.update({
     where: { id },
