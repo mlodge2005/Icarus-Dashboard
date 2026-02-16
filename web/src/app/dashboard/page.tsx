@@ -1,4 +1,5 @@
 import { auth } from "@/auth";
+import { UserMenu } from "@/components/UserMenu";
 import { prisma } from "@/lib/prisma";
 import { formatDistanceToNowStrict } from "date-fns";
 
@@ -59,11 +60,14 @@ export default async function OverviewPage() {
   return (
     <>
       <div className="topbar">
-        <div className="h1">Overview</div>
-        <div className="badge">
-          <span className="dot" style={{ background: s.color }} />
-          {s.label}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div className="h1">Overview</div>
+          <div className="badge">
+            <span className="dot" style={{ background: s.color }} />
+            {s.label}
+          </div>
         </div>
+        <UserMenu email={session.user.email} />
       </div>
 
       <div className="grid grid2">
