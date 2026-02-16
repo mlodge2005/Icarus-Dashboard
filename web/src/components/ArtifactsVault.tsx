@@ -25,13 +25,21 @@ export function ArtifactsVault({ artifacts }: { artifacts: Artifact[] }) {
   const [uploadErr, setUploadErr] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
-  async function download(id: string) {
+  async function download(id: string, filename: string) {
     setLoadingId(id);
     try {
       const res = await fetch(`/api/artifacts/${id}/download`);
       if (!res.ok) throw new Error("download failed");
-      const data = (await res.json()) as { url: string };
-      window.open(data.url, "_blank", "noopener,noreferrer");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.rel = "noopener noreferrer";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
     } finally {
       setLoadingId(null);
     }
@@ -97,7 +105,7 @@ export function ArtifactsVault({ artifacts }: { artifacts: Artifact[] }) {
                     {a.mimeType} · {humanSize(a.sizeBytes)} · {new Date(a.createdAt).toLocaleString()}
                   </div>
                 </div>
-                <button className="btn" onClick={() => void download(a.id)} disabled={loadingId === a.id}>
+                <button className="btn" onClick={() => void download(a.id, a.filename)} disabled={loadingId === a.id}>
                   {loadingId === a.id ? "Opening..." : "Download"}
                 </button>
               </div>
