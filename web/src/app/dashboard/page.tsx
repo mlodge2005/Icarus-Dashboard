@@ -28,6 +28,7 @@ export default function Dashboard() {
           <button onClick={() => void create({ title: `Task ${tasks.length + 1}`, description: "", status: "todo", priority: "medium", dueDate: new Date().toISOString(), tags: [], externalLinks: [], now: new Date().toISOString() })}>New Task</button>
         </div>
       </div>
+      <p><small>Drag a task card to move status. Click a task to open detail and chronological activity.</small></p>
 
       <div className="grid">
         {cols.map((col) => (

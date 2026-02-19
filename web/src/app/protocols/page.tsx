@@ -17,12 +17,18 @@ export default function ProtocolsPage() {
   return (
     <div className="wrap">
       <h1>Protocol Builder</h1>
+      <p><small>Create reusable runbooks. One step per line. Run with approval for guarded execution.</small></p>
       <div className="head">
         <button onClick={() => void seedTemplates({ now: new Date().toISOString() })}>Seed Templates</button>
       </div>
       <div className="col">
+        <label><small>Protocol Name — short action label (e.g. “Daily Ops Triage”).</small></label>
         <input value={name} onChange={(e)=>setName(e.target.value)} placeholder="Protocol name" style={{width:"100%",marginBottom:8}} />
+
+        <label><small>Objective — one sentence defining success criteria.</small></label>
         <textarea value={objective} onChange={(e)=>setObjective(e.target.value)} placeholder="Objective" style={{width:"100%",marginBottom:8}} />
+
+        <label><small>Steps — ordered checklist, one step per line. Keep each step atomic.</small></label>
         <textarea value={steps} onChange={(e)=>setSteps(e.target.value)} placeholder="One step per line" style={{width:"100%",height:120,marginBottom:8}} />
         <button onClick={() => void create({ name, trigger: "manual", objective, steps: steps.split("\n").map(s => s.trim()).filter(Boolean), approvalsRequired: true, now: new Date().toISOString() })}>Create Protocol</button>
       </div>
@@ -37,6 +43,7 @@ export default function ProtocolsPage() {
             <button onClick={() => void run({ protocolId: p._id, now: new Date().toISOString() })}>Run (no approval)</button>
             <button onClick={() => void run({ protocolId: p._id, now: new Date().toISOString(), approvalGranted: true })}>Run (approved)</button>
           </div>
+          <small>Use “Run (no approval)” to validate gate behavior; use “Run (approved)” for successful execution.</small>
         </div>
       ))}
 

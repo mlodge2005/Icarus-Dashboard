@@ -16,6 +16,7 @@ export default function CapabilitiesPage() {
   return (
     <div className="wrap">
       <div className="head"><h1>Capabilities Registry</h1><button onClick={() => void seed()}>Seed / Refresh checks</button></div>
+      <p><small>Purpose: show what the agent can do right now in this environment. “Seed / Refresh checks” writes baseline capability states.</small></p>
       {items.map((c) => (
         <div className="card" key={c._id}>
           <strong>{c.name}</strong> — <small>{c.status}</small>
