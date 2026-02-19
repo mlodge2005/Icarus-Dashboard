@@ -59,6 +59,28 @@ export const moveStatus = mutation({
   }
 });
 
+export const resolveBlocker = mutation({
+  args: { id: v.id("tasks"), resumeStatus: v.optional(status), now: v.string() },
+  handler: async (ctx, a) => {
+    const task = await ctx.db.get(a.id); if (!task) throw new Error("Task not found");
+    const nextTags = (task.tags ?? []).filter((t) => t !== "blocked");
+    const nextStatus = a.resumeStatus ?? (task.status === "done" ? "done" : "in_progress");
+    await ctx.db.patch(a.id, { blockerReason: undefined, tags: nextTags, status: nextStatus, updatedAt: a.now });
+    await appendActivity(ctx, { eventType: "task_blocker_resolved", entityType: "task", entityId: a.id, payload: JSON.stringify({ previousBlockerReason: task.blockerReason ?? null, resumedTo: nextStatus, taskId: a.id }), createdAt: a.now });
+    return a.id;
+  }
+});
+
+export const remove = mutation({
+  args: { id: v.id("tasks"), now: v.string() },
+  handler: async (ctx, a) => {
+    const task = await ctx.db.get(a.id); if (!task) throw new Error("Task not found");
+    await appendActivity(ctx, { eventType: "task_deleted", entityType: "task", entityId: a.id, payload: JSON.stringify({ title: task.title, taskId: a.id }), createdAt: a.now });
+    await ctx.db.delete(a.id);
+    return true;
+  }
+});
+
 export const taskActivity = query({
   args: { taskId: v.id("tasks") },
   handler: async (ctx, a) => ctx.db.query("activityEvents").withIndex("by_entity", (q) => q.eq("entityType", "task").eq("entityId", a.taskId)).collect()

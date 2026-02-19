@@ -10,6 +10,7 @@ export default function Dashboard() {
   const tasks = (useQuery(api.tasks.list, {}) as any[] | undefined) ?? [];
   const move = useMutation(api.tasks.moveStatus);
   const create = useMutation(api.tasks.create);
+  const remove = useMutation(api.tasks.remove);
   const activity = (useQuery(api.activity.listGlobal, {}) as any[] | undefined) ?? [];
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [msg, setMsg] = useState<string>("");
@@ -41,6 +42,7 @@ export default function Dashboard() {
             {grouped[col].map((task) => (
               <article key={task._id} className="card" draggable onDragStart={(e) => e.dataTransfer.setData("taskId", task._id)} onClick={() => setSelectedId(task._id)}>
                 <div>{task.title}</div><small>{task.priority}</small>
+                <div style={{marginTop:6}}><button onClick={async(e)=>{e.stopPropagation(); try{await remove({id:task._id,now:new Date().toISOString()}); setMsg("Task deleted.");}catch(err){setMsg(`Delete failed: ${(err as Error).message}`)}}}>Delete</button></div>
               </article>
             ))}
           </section>

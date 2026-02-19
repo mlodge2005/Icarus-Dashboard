@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 
@@ -13,17 +14,22 @@ const blockerHints: Record<string, string> = {
 export default function OpsPage() {
   const snap = useQuery(api.ops.snapshot, {}) as any;
   const createTask = useMutation(api.tasks.create);
+  const resolveBlocker = useMutation(api.tasks.resolveBlocker);
+  const removeTask = useMutation(api.tasks.remove);
+  const [msg, setMsg] = useState("");
+
   if (!snap) return <div className="wrap">Loading...</div>;
   const empty = snap.now.length===0 && snap.next.length===0 && snap.blocked.length===0;
 
   return (
     <div className="wrap">
       <h1>Ops Command Center</h1>
+      {msg ? <small>{msg}</small> : null}
       {empty ? <div className="card">No active work yet. <button onClick={()=>void createTask({title:"Initial Task",description:"",status:"todo",priority:"medium",dueDate:new Date().toISOString(),tags:[],externalLinks:[],now:new Date().toISOString()})}>Create starter task</button></div> : null}
       <div className="grid">
         <section className="col"><h3>Now</h3>{snap.now.map((t: any) => <div className="card" key={t._id}>{t.title}</div>)}</section>
-        <section className="col"><h3>Next</h3>{snap.next.map((t: any) => <div className="card" key={t._id}>{t.title}</div>)}</section>
-        <section className="col"><h3>Blocked</h3>{snap.blocked.map((t: any) => <div className="card" key={t._id}><strong>{t.title}</strong><div><small>Reason:</small> {t.blockerReason ?? "not set"}</div>{t.blockerReason ? <div><small>Fix:</small> {blockerHints[t.blockerReason] ?? blockerHints.other}</div> : <div><small>Fix:</small> set blockerReason on task update.</div>}</div>)}</section>
+        <section className="col"><h3>Next</h3>{snap.next.map((t: any) => <div className="card" key={t._id}><strong>{t.title}</strong><div style={{display:"flex",gap:8,marginTop:6}}><button onClick={async()=>{try{await removeTask({id:t._id,now:new Date().toISOString()});setMsg("Task deleted.");}catch(e){setMsg((e as Error).message)}}}>Delete</button></div></div>)}</section>
+        <section className="col"><h3>Blocked</h3>{snap.blocked.map((t: any) => <div className="card" key={t._id}><strong>{t.title}</strong><div><small>Reason:</small> {t.blockerReason ?? "not set"}</div>{t.blockerReason ? <div><small>Fix:</small> {blockerHints[t.blockerReason] ?? blockerHints.other}</div> : <div><small>Fix:</small> set blockerReason on task update.</div>}<div style={{display:"flex",gap:8,marginTop:6}}><button onClick={async()=>{try{await resolveBlocker({id:t._id,resumeStatus:"in_progress",now:new Date().toISOString()});setMsg("Blocker resolved. Task resumed.");}catch(e){setMsg((e as Error).message)}}}>Resolve + Resume</button><button onClick={async()=>{try{await removeTask({id:t._id,now:new Date().toISOString()});setMsg("Blocked task deleted.");}catch(e){setMsg((e as Error).message)}}}>Delete</button></div></div>)}</section>
       </div>
       <h3 style={{marginTop:16}}>Execution Timeline</h3>
       {(snap.latestActivity as any[]).length===0 ? <div className="card">No activity yet.</div> : null}
