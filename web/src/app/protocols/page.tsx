@@ -4,12 +4,18 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import type { Protocol, ProtocolRun } from "@/lib/models";
 
+function RunSteps({ runId }: { runId: string }) {
+  const steps = (useQuery((api as any).protocols.runSteps, { runId }) as any[] | undefined) ?? [];
+  return <ol>{steps.map((s) => <li key={s._id}><small>#{s.stepIndex + 1}</small> {s.stepText} — {s.status}</li>)}</ol>;
+}
+
 export default function ProtocolsPage() {
   const protocols = (useQuery((api as any).protocols.list, {}) as Protocol[] | undefined) ?? [];
   const runs = (useQuery((api as any).protocols.listRuns, {}) as ProtocolRun[] | undefined) ?? [];
   const create = useMutation((api as any).protocols.create);
   const run = useMutation((api as any).protocols.run);
   const seedTemplates = useMutation((api as any).protocols.createTemplateSet);
+  const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
 
   const [name, setName] = useState("Daily Ops Triage");
   const [objective, setObjective] = useState("Triage work, unblock critical tasks, and report next actions.");
@@ -44,7 +50,13 @@ export default function ProtocolsPage() {
       ))}
 
       <h3 style={{marginTop:16}}>Run History</h3>
-      {runs.map((r) => <div className="card" key={r._id}><small>{r.startedAt}</small> — {r.status} — {r.output ?? r.error ?? ""}</div>)}
+      {runs.map((r) => (
+        <div className="card" key={r._id}>
+          <small>{r.startedAt}</small> — {r.status} — {r.output ?? r.error ?? ""}
+          <div><button onClick={() => setExpandedRunId(expandedRunId === r._id ? null : r._id)}>{expandedRunId === r._id ? "Hide" : "Show"} step detail</button></div>
+          {expandedRunId === r._id ? <RunSteps runId={r._id} /> : null}
+        </div>
+      ))}
     </div>
   );
 }
