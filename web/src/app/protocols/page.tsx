@@ -8,6 +8,7 @@ export default function ProtocolsPage() {
   const runs = (useQuery((api as any).protocols.listRuns, {}) as any[] | undefined) ?? [];
   const create = useMutation((api as any).protocols.create);
   const run = useMutation((api as any).protocols.run);
+  const seedTemplates = useMutation((api as any).protocols.createTemplateSet);
 
   const [name, setName] = useState("Daily Ops Triage");
   const [objective, setObjective] = useState("Triage work, unblock critical tasks, and report next actions.");
@@ -16,6 +17,9 @@ export default function ProtocolsPage() {
   return (
     <div className="wrap">
       <h1>Protocol Builder</h1>
+      <div className="head">
+        <button onClick={() => void seedTemplates({ now: new Date().toISOString() })}>Seed Templates</button>
+      </div>
       <div className="col">
         <input value={name} onChange={(e)=>setName(e.target.value)} placeholder="Protocol name" style={{width:"100%",marginBottom:8}} />
         <textarea value={objective} onChange={(e)=>setObjective(e.target.value)} placeholder="Objective" style={{width:"100%",marginBottom:8}} />
@@ -26,10 +30,13 @@ export default function ProtocolsPage() {
       <h3 style={{marginTop:16}}>Protocols</h3>
       {protocols.map((p) => (
         <div className="card" key={p._id}>
-          <strong>{p.name}</strong> <small>({p.trigger})</small>
+          <strong>{p.name}</strong> <small>({p.trigger}) • approvals: {p.approvalsRequired ? "required" : "not required"}</small>
           <div>{p.objective}</div>
           <ol>{(p.steps ?? []).map((s: string, i: number) => <li key={i}>{s}</li>)}</ol>
-          <button onClick={() => void run({ protocolId: p._id, now: new Date().toISOString() })}>Run</button>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={() => void run({ protocolId: p._id, now: new Date().toISOString() })}>Run (no approval)</button>
+            <button onClick={() => void run({ protocolId: p._id, now: new Date().toISOString(), approvalGranted: true })}>Run (approved)</button>
+          </div>
         </div>
       ))}
 
