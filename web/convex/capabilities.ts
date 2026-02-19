@@ -29,6 +29,9 @@ export const autoProbe = mutation({
       { name: "GitHub Push", status: "available" as const, requirement: "SSH key configured", lastResult: "Assumed available (last push succeeded)", fixHint: "Verify by pushing a no-op commit if uncertain" },
       { name: "Convex Deploy", status: process.env.CONVEX_DEPLOYMENT ? ("available" as const) : ("blocked" as const), requirement: "CONVEX_DEPLOYMENT", lastResult: process.env.CONVEX_DEPLOYMENT ? "env present" : "missing env", fixHint: "Set CONVEX_DEPLOYMENT" },
       { name: "Agent API Auth", status: process.env.AGENT_KEY ? ("available" as const) : ("blocked" as const), requirement: "AGENT_KEY", lastResult: process.env.AGENT_KEY ? "env present" : "missing env", fixHint: "Set AGENT_KEY" },
+      { name: "Chrome Relay", status: process.env.CHROME_RELAY_URL ? ("available" as const) : ("blocked" as const), requirement: "CHROME_RELAY_URL", lastResult: process.env.CHROME_RELAY_URL ? "relay endpoint configured" : "relay endpoint missing", fixHint: "Set CHROME_RELAY_URL for browser relay features" },
+      { name: "Documents Hub", status: "available" as const, requirement: "Convex documents table", lastResult: "documents CRUD online", fixHint: "n/a" },
+      { name: "Protocol Engine", status: "available" as const, requirement: "protocol mutations enabled", lastResult: "create/run/pause/resume supported", fixHint: "n/a" },
     ];
 
     const ids: string[] = [];

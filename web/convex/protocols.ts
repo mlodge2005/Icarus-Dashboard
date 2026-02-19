@@ -13,6 +13,54 @@ export const create = mutation({
   },
 });
 
+export const update = mutation({
+  args: {
+    id: v.id("protocols"),
+    name: v.optional(v.string()),
+    objective: v.optional(v.string()),
+    definitionOfDone: v.optional(v.string()),
+    requiredInputs: v.optional(v.array(v.string())),
+    steps: v.optional(v.array(v.string())),
+    approvalsRequired: v.optional(v.boolean()),
+    now: v.string(),
+  },
+  handler: async (ctx, a) => {
+    const p = await ctx.db.get(a.id); if (!p) throw new Error("Protocol not found");
+    const patch = {
+      name: a.name ?? p.name,
+      objective: a.objective ?? p.objective,
+      definitionOfDone: a.definitionOfDone ?? p.definitionOfDone,
+      requiredInputs: a.requiredInputs ?? p.requiredInputs,
+      steps: a.steps ?? p.steps,
+      approvalsRequired: a.approvalsRequired ?? p.approvalsRequired,
+      updatedAt: a.now,
+    };
+    await ctx.db.patch(a.id, patch);
+    await appendActivity(ctx, { eventType: "protocol_updated", entityType: "protocol", entityId: a.id, payload: JSON.stringify({ protocolId: a.id }), createdAt: a.now });
+    return a.id;
+  },
+});
+
+export const setActive = mutation({
+  args: { id: v.id("protocols"), active: v.boolean(), now: v.string() },
+  handler: async (ctx, a) => {
+    const p = await ctx.db.get(a.id); if (!p) throw new Error("Protocol not found");
+    await ctx.db.patch(a.id, { active: a.active, updatedAt: a.now });
+    await appendActivity(ctx, { eventType: a.active ? "protocol_resumed" : "protocol_paused", entityType: "protocol", entityId: a.id, payload: JSON.stringify({ protocolId: a.id, active: a.active }), createdAt: a.now });
+    return a.id;
+  },
+});
+
+export const remove = mutation({
+  args: { id: v.id("protocols"), now: v.string() },
+  handler: async (ctx, a) => {
+    const p = await ctx.db.get(a.id); if (!p) throw new Error("Protocol not found");
+    await appendActivity(ctx, { eventType: "protocol_deleted", entityType: "protocol", entityId: a.id, payload: JSON.stringify({ name: p.name, protocolId: a.id }), createdAt: a.now });
+    await ctx.db.delete(a.id);
+    return true;
+  },
+});
+
 export const createTemplateSet = mutation({
   args: { now: v.string() },
   handler: async (ctx, a) => {
@@ -37,6 +85,7 @@ export const run = mutation({
   handler: async (ctx, a) => {
     const protocol = await ctx.db.get(a.protocolId);
     if (!protocol) throw new Error("Protocol not found");
+    if (!protocol.active) throw new Error("Protocol is paused");
 
     const runId = await ctx.db.insert("protocolRuns", { protocolId: a.protocolId, status: "queued", startedAt: a.now, output: `Queued protocol: ${protocol.name}` });
 

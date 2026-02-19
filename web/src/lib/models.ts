@@ -5,6 +5,7 @@ export type Protocol = {
   objective: string;
   steps: string[];
   approvalsRequired: boolean;
+  active?: boolean;
   definitionOfDone?: string;
   requiredInputs?: string[];
   templateCategory?: string;

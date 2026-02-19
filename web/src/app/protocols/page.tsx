@@ -14,7 +14,11 @@ export default function ProtocolsPage() {
   const runs = (useQuery(api.protocols.listRuns, {}) as ProtocolRun[] | undefined) ?? [];
   const create = useMutation(api.protocols.create);
   const run = useMutation(api.protocols.run);
+  const update = useMutation(api.protocols.update);
+  const setActive = useMutation(api.protocols.setActive);
+  const remove = useMutation(api.protocols.remove);
   const seedTemplates = useMutation(api.protocols.createTemplateSet);
+
   const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
 
@@ -44,9 +48,15 @@ export default function ProtocolsPage() {
       {protocols.length===0 ? <div className="card">No protocols yet. Create one or seed templates.</div> : null}
       {protocols.map((p) => (
         <div className="card" key={p._id}>
-          <strong>{p.name}</strong><div>{p.objective}</div>
+          <strong>{p.name}</strong> <small>({p.active ? "active" : "paused"})</small>
+          <div>{p.objective}</div>
+          <div style={{display:"flex",gap:8,margin:"8px 0"}}>
+            <button onClick={async ()=>{try{await setActive({id:p._id as any,active:!p.active,now:new Date().toISOString()});setMsg(p.active?"Protocol paused.":"Protocol resumed.");}catch(e){setMsg((e as Error).message)}}}>{p.active?"Pause":"Resume"}</button>
+            <button onClick={async ()=>{try{await update({id:p._id as any,objective:`${p.objective} (edited)`,now:new Date().toISOString()});setMsg("Protocol edited.");}catch(e){setMsg((e as Error).message)}}}>Quick Edit</button>
+            <button onClick={async ()=>{try{await remove({id:p._id as any,now:new Date().toISOString()});setMsg("Protocol deleted.");}catch(e){setMsg((e as Error).message)}}}>Delete</button>
+          </div>
           <textarea value={providedInputs} onChange={(e)=>setProvidedInputs(e.target.value)} style={{width:"100%",height:60,marginBottom:8}} />
-          <button onClick={async ()=>{try{await run({ protocolId:p._id as any, now:new Date().toISOString(), providedInputs:providedInputs.split("\n").map(s=>s.trim()).filter(Boolean), approvalGranted:true }); setMsg("Protocol run started.");}catch(e){setMsg(`Run failed: ${(e as Error).message}`)}}}>Run Approved</button>
+          <button disabled={!p.active} onClick={async ()=>{try{await run({ protocolId:p._id as any, now:new Date().toISOString(), providedInputs:providedInputs.split("\n").map(s=>s.trim()).filter(Boolean), approvalGranted:true }); setMsg("Protocol run started.");}catch(e){setMsg(`Run failed: ${(e as Error).message}`)}}}>Run Approved</button>
         </div>
       ))}
 
