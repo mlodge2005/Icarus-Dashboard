@@ -1,5 +1,4 @@
 "use client";
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
@@ -26,12 +25,6 @@ export default function Dashboard() {
       <div className="head">
         <h1>Dashboard</h1>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <Link href="/ops">Ops</Link>
-          <Link href="/protocols">Protocols</Link>
-          <Link href="/capabilities">Capabilities</Link>
-          <Link href="/projects">Projects</Link>
-          <Link href="/content">Content</Link>
-          <Link href="/documents">Documents</Link>
           <button onClick={() => void create({ title: `Task ${tasks.length + 1}`, description: "", status: "todo", priority: "medium", dueDate: new Date().toISOString(), tags: [], externalLinks: [], now: new Date().toISOString() })}>New Task</button>
         </div>
       </div>
