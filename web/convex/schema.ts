@@ -6,6 +6,7 @@ const priority = v.union(v.literal("low"), v.literal("medium"), v.literal("high"
 const contentStatus = v.union(v.literal("ideas"), v.literal("drafts"), v.literal("published"));
 const capabilityStatus = v.union(v.literal("available"), v.literal("degraded"), v.literal("blocked"));
 const protocolRunStatus = v.union(v.literal("queued"), v.literal("running"), v.literal("success"), v.literal("failed"));
+const protocolStepStatus = v.union(v.literal("pending"), v.literal("running"), v.literal("success"), v.literal("failed"));
 
 export default defineSchema({
   projects: defineTable({ name: v.string(), description: v.optional(v.string()), createdAt: v.string(), updatedAt: v.string() }),
@@ -14,31 +15,8 @@ export default defineSchema({
   documents: defineTable({ title: v.string(), url: v.optional(v.string()), note: v.optional(v.string()), createdAt: v.string(), updatedAt: v.string() }),
   taskDocuments: defineTable({ taskId: v.id("tasks"), documentId: v.id("documents"), createdAt: v.string() }).index("by_task", ["taskId"]),
   activityEvents: defineTable({ eventType: v.string(), entityType: v.string(), entityId: v.string(), payload: v.string(), summary: v.string(), createdAt: v.string() }).index("by_entity", ["entityType", "entityId"]),
-  capabilities: defineTable({
-    name: v.string(),
-    status: capabilityStatus,
-    requirement: v.string(),
-    lastCheckedAt: v.optional(v.string()),
-    lastResult: v.optional(v.string()),
-    fixHint: v.optional(v.string()),
-    updatedAt: v.string(),
-  }).index("by_name", ["name"]),
-  protocols: defineTable({
-    name: v.string(),
-    trigger: v.union(v.literal("manual"), v.literal("schedule"), v.literal("event")),
-    objective: v.string(),
-    steps: v.array(v.string()),
-    approvalsRequired: v.boolean(),
-    active: v.boolean(),
-    createdAt: v.string(),
-    updatedAt: v.string(),
-  }).index("by_name", ["name"]),
-  protocolRuns: defineTable({
-    protocolId: v.id("protocols"),
-    status: protocolRunStatus,
-    startedAt: v.string(),
-    endedAt: v.optional(v.string()),
-    output: v.optional(v.string()),
-    error: v.optional(v.string()),
-  }).index("by_protocol", ["protocolId"]),
+  capabilities: defineTable({ name: v.string(), status: capabilityStatus, requirement: v.string(), lastCheckedAt: v.optional(v.string()), lastResult: v.optional(v.string()), fixHint: v.optional(v.string()), updatedAt: v.string() }).index("by_name", ["name"]),
+  protocols: defineTable({ name: v.string(), trigger: v.union(v.literal("manual"), v.literal("schedule"), v.literal("event")), objective: v.string(), steps: v.array(v.string()), approvalsRequired: v.boolean(), active: v.boolean(), createdAt: v.string(), updatedAt: v.string() }).index("by_name", ["name"]),
+  protocolRuns: defineTable({ protocolId: v.id("protocols"), status: protocolRunStatus, startedAt: v.string(), endedAt: v.optional(v.string()), output: v.optional(v.string()), error: v.optional(v.string()) }).index("by_protocol", ["protocolId"]),
+  protocolRunSteps: defineTable({ runId: v.id("protocolRuns"), stepIndex: v.number(), stepText: v.string(), status: protocolStepStatus, startedAt: v.optional(v.string()), endedAt: v.optional(v.string()), error: v.optional(v.string()) }).index("by_run", ["runId"]),
 });

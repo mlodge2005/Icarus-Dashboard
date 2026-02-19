@@ -1,6 +1,7 @@
 import Link from "next/link";
 import "./globals.css";
 import { ConvexClientProvider } from "@/components/provider";
+import HeaderStatus from "@/components/header-status";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -10,6 +11,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <header style={{ borderBottom: "1px solid #e7e7e7", background: "#fff" }}>
             <div className="wrap" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
               <strong>Wren OS</strong>
+              <HeaderStatus />
               <nav style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                 <Link href="/ops">Ops</Link>
                 <Link href="/dashboard">Dashboard</Link>
