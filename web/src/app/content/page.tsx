@@ -11,7 +11,7 @@ export default function Content() {
   return (
     <div className="wrap">
       <h1>Content Queue</h1>
-      <p><small>Add ideas, drafts, and published items.</small></p>
+      <p><small>Track ideas, drafts, and published content in one pipeline.</small></p>
       <input value={title} onChange={(e)=>setTitle(e.target.value)} />
       <button onClick={async ()=>{try{await create({title, platform:"general", hook:"", status:"ideas", tags:[], now:new Date().toISOString()}); setMsg("Content created.");}catch(e){setMsg(`Failed: ${(e as Error).message}`)}}}>Add Idea</button>
       {msg ? <small>{msg}</small> : null}

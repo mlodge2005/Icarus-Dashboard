@@ -11,7 +11,7 @@ export default function Projects() {
   return (
     <div className="wrap">
       <h1>Projects</h1>
-      <p><small>Create a project to group related tasks.</small></p>
+      <p><small>Create project containers to group work and track project-level context.</small></p>
       <input value={name} onChange={(e)=>setName(e.target.value)} />
       <button onClick={async ()=>{try{await create({name, now:new Date().toISOString()}); setMsg("Project created.");}catch(e){setMsg(`Failed: ${(e as Error).message}`)}}}>Create Project</button>
       {msg ? <small>{msg}</small> : null}

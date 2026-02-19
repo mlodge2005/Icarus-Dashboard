@@ -14,7 +14,7 @@ export default function Documents() {
   return (
     <div className="wrap">
       <h1>Documents Hub</h1>
-      <p><small>Use this page to transfer links/notes/artifacts between you and Icarus.</small></p>
+      <p><small>Shared handoff space between you and Icarus for links, notes, and artifact references.</small></p>
       <label><small>Title</small></label>
       <input value={title} onChange={(e)=>setTitle(e.target.value)} style={{width:"100%"}} />
       <label><small>URL (optional)</small></label>

@@ -24,6 +24,7 @@ export default function OpsPage() {
   return (
     <div className="wrap">
       <h1>Ops Command Center</h1>
+      <p><small>System triage view. Focus on blockers, resumptions, and operational flow.</small></p>
       {msg ? <small>{msg}</small> : null}
       {empty ? <div className="card">No active work yet. <button onClick={()=>void createTask({title:"Initial Task",description:"",status:"todo",priority:"medium",dueDate:new Date().toISOString(),tags:[],externalLinks:[],now:new Date().toISOString()})}>Create starter task</button></div> : null}
       <div className="grid">

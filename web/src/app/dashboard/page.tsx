@@ -28,8 +28,8 @@ export default function Dashboard() {
   return (
     <div className="wrap">
       <div className="head"><h1>Dashboard</h1><button onClick={onCreate}>New Task</button></div>
+      <p><small>Execution board: create tasks, drag status between columns, and inspect task activity.</small></p>
       {msg ? <small>{msg}</small> : null}
-      <p><small>Drag a task card to move status. Click a task for details.</small></p>
       <div className="grid">
         {cols.map((col) => (
           <section key={col} className="col" onDragOver={(e) => e.preventDefault()} onDrop={async (e) => {

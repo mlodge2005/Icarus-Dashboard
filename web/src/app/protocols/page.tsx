@@ -21,6 +21,7 @@ export default function ProtocolsPage() {
 
   const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
+  const [editing, setEditing] = useState<Protocol | null>(null);
 
   const [name, setName] = useState("Daily Ops Triage");
   const [objective, setObjective] = useState("Triage work, unblock critical tasks, and report next actions.");
@@ -30,21 +31,43 @@ export default function ProtocolsPage() {
   const [providedInputs, setProvidedInputs] = useState("Current task board\nInbox access");
   const protocolLookup = useMemo(() => new Map(protocols.map((p) => [p._id, p.name])), [protocols]);
 
+  const [editName, setEditName] = useState("");
+  const [editObjective, setEditObjective] = useState("");
+  const [editDod, setEditDod] = useState("");
+  const [editRequired, setEditRequired] = useState("");
+  const [editSteps, setEditSteps] = useState("");
+
+  const openEdit = (p: Protocol) => {
+    setEditing(p);
+    setEditName(p.name);
+    setEditObjective(p.objective);
+    setEditDod(p.definitionOfDone ?? "");
+    setEditRequired((p.requiredInputs ?? []).join("\n"));
+    setEditSteps((p.steps ?? []).join("\n"));
+  };
+
   return (
     <div className="wrap">
       <h1>Protocol Builder</h1>
+      <p><small>Create repeatable workflows. Use required inputs + approval to gate execution quality.</small></p>
       {msg ? <small>{msg}</small> : null}
       <div className="head"><button onClick={async ()=>{try{await seedTemplates({ now: new Date().toISOString() }); setMsg("Templates seeded.");}catch(e){setMsg((e as Error).message)}}}>Seed Templates</button></div>
       <div className="col">
+        <label><small>Name</small></label>
         <input value={name} onChange={(e)=>setName(e.target.value)} placeholder="Protocol name" style={{width:"100%",marginBottom:8}} />
+        <label><small>Objective</small></label>
         <textarea value={objective} onChange={(e)=>setObjective(e.target.value)} placeholder="Objective" style={{width:"100%",marginBottom:8}} />
+        <label><small>Definition of Done</small></label>
         <textarea value={definitionOfDone} onChange={(e)=>setDefinitionOfDone(e.target.value)} placeholder="Definition of done" style={{width:"100%",marginBottom:8}} />
-        <textarea value={requiredInputs} onChange={(e)=>setRequiredInputs(e.target.value)} placeholder="Required inputs (one per line)" style={{width:"100%",height:80,marginBottom:8}} />
-        <textarea value={steps} onChange={(e)=>setSteps(e.target.value)} placeholder="Steps (one per line)" style={{width:"100%",height:100,marginBottom:8}} />
+        <label><small>Required Inputs (one per line)</small></label>
+        <textarea value={requiredInputs} onChange={(e)=>setRequiredInputs(e.target.value)} placeholder="Required inputs" style={{width:"100%",height:80,marginBottom:8}} />
+        <label><small>Steps (one per line)</small></label>
+        <textarea value={steps} onChange={(e)=>setSteps(e.target.value)} placeholder="Steps" style={{width:"100%",height:100,marginBottom:8}} />
         <button onClick={async ()=>{try{await create({ name, trigger:"manual", objective, definitionOfDone, requiredInputs: requiredInputs.split("\n").map(s=>s.trim()).filter(Boolean), steps:steps.split("\n").map(s=>s.trim()).filter(Boolean), approvalsRequired:true, templateCategory:"custom", now:new Date().toISOString() }); setMsg("Protocol created.");}catch(e){setMsg(`Create failed: ${(e as Error).message}`)}}}>Create Protocol</button>
       </div>
 
       <h3 style={{marginTop:16}}>Protocols</h3>
+      <p><small>Pause/resume controls whether a protocol can run. Edit opens a modal to update fields.</small></p>
       {protocols.length===0 ? <div className="card">No protocols yet. Create one or seed templates.</div> : null}
       {protocols.map((p) => (
         <div className="card" key={p._id}>
@@ -52,15 +75,40 @@ export default function ProtocolsPage() {
           <div>{p.objective}</div>
           <div style={{display:"flex",gap:8,margin:"8px 0"}}>
             <button onClick={async ()=>{try{await setActive({id:p._id as any,active:!p.active,now:new Date().toISOString()});setMsg(p.active?"Protocol paused.":"Protocol resumed.");}catch(e){setMsg((e as Error).message)}}}>{p.active?"Pause":"Resume"}</button>
-            <button onClick={async ()=>{try{await update({id:p._id as any,objective:`${p.objective} (edited)`,now:new Date().toISOString()});setMsg("Protocol edited.");}catch(e){setMsg((e as Error).message)}}}>Quick Edit</button>
+            <button onClick={()=>openEdit(p)}>Edit</button>
             <button onClick={async ()=>{try{await remove({id:p._id as any,now:new Date().toISOString()});setMsg("Protocol deleted.");}catch(e){setMsg((e as Error).message)}}}>Delete</button>
           </div>
+          <label><small>Provided inputs for run (one per line)</small></label>
           <textarea value={providedInputs} onChange={(e)=>setProvidedInputs(e.target.value)} style={{width:"100%",height:60,marginBottom:8}} />
           <button disabled={!p.active} onClick={async ()=>{try{await run({ protocolId:p._id as any, now:new Date().toISOString(), providedInputs:providedInputs.split("\n").map(s=>s.trim()).filter(Boolean), approvalGranted:true }); setMsg("Protocol run started.");}catch(e){setMsg(`Run failed: ${(e as Error).message}`)}}}>Run Approved</button>
         </div>
       ))}
 
+      {editing ? (
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.35)",display:"grid",placeItems:"center",zIndex:50}}>
+          <div className="col" style={{width:"min(700px, 92vw)",maxHeight:"85vh",overflow:"auto"}}>
+            <h3>Edit Protocol</h3>
+            <p><small>Update fields and save. No auto-appended text is added.</small></p>
+            <label><small>Name</small></label>
+            <input value={editName} onChange={(e)=>setEditName(e.target.value)} style={{width:"100%",marginBottom:8}} />
+            <label><small>Objective</small></label>
+            <textarea value={editObjective} onChange={(e)=>setEditObjective(e.target.value)} style={{width:"100%",marginBottom:8}} />
+            <label><small>Definition of Done</small></label>
+            <textarea value={editDod} onChange={(e)=>setEditDod(e.target.value)} style={{width:"100%",marginBottom:8}} />
+            <label><small>Required Inputs</small></label>
+            <textarea value={editRequired} onChange={(e)=>setEditRequired(e.target.value)} style={{width:"100%",height:80,marginBottom:8}} />
+            <label><small>Steps</small></label>
+            <textarea value={editSteps} onChange={(e)=>setEditSteps(e.target.value)} style={{width:"100%",height:110,marginBottom:8}} />
+            <div style={{display:"flex",gap:8}}>
+              <button onClick={async ()=>{try{await update({id:editing._id as any,name:editName,objective:editObjective,definitionOfDone:editDod,requiredInputs:editRequired.split("\n").map(s=>s.trim()).filter(Boolean),steps:editSteps.split("\n").map(s=>s.trim()).filter(Boolean),now:new Date().toISOString()});setMsg("Protocol updated.");setEditing(null);}catch(e){setMsg((e as Error).message)}}}>Save</button>
+              <button onClick={()=>setEditing(null)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <h3 style={{marginTop:16}}>Run History</h3>
+      <p><small>Shows execution state and step-by-step trace for each run.</small></p>
       {runs.map((r) => <div className="card" key={r._id}><small>{r.startedAt}</small> — <strong>{protocolLookup.get(r.protocolId) ?? r.protocolId}</strong> — {r.status}<div><button onClick={() => setExpandedRunId(expandedRunId === r._id ? null : r._id)}>{expandedRunId === r._id ? "Hide" : "Show"} steps</button></div>{expandedRunId===r._id?<RunSteps runId={r._id} />:null}</div>)}
     </div>
   );
