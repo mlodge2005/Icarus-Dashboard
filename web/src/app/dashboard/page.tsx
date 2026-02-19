@@ -34,7 +34,7 @@ export default function Dashboard() {
           <section key={col} className="col" onDragOver={(e) => e.preventDefault()} onDrop={async (e) => {
             const id = e.dataTransfer.getData("taskId");
             if (!id) return;
-            try { await move({ id, to: col, now: new Date().toISOString() }); setMsg("Task moved."); }
+            try { await move({ id: id as any, to: col, now: new Date().toISOString() }); setMsg("Task moved."); }
             catch (err) { setMsg(`Move failed: ${(err as Error).message}`); }
           }}>
             <strong>{col}</strong>

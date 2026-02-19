@@ -5,7 +5,7 @@ import { api } from "../../../convex/_generated/api";
 import type { Protocol, ProtocolRun } from "@/lib/models";
 
 function RunSteps({ runId }: { runId: string }) {
-  const steps = (useQuery(api.protocols.runSteps, { runId }) as any[] | undefined) ?? [];
+  const steps = (useQuery(api.protocols.runSteps, { runId: runId as any }) as any[] | undefined) ?? [];
   return <ol>{steps.map((s) => <li key={s._id}><small>#{s.stepIndex + 1}</small> {s.stepText} — {s.status}</li>)}</ol>;
 }
 
@@ -46,7 +46,7 @@ export default function ProtocolsPage() {
         <div className="card" key={p._id}>
           <strong>{p.name}</strong><div>{p.objective}</div>
           <textarea value={providedInputs} onChange={(e)=>setProvidedInputs(e.target.value)} style={{width:"100%",height:60,marginBottom:8}} />
-          <button onClick={async ()=>{try{await run({ protocolId:p._id, now:new Date().toISOString(), providedInputs:providedInputs.split("\n").map(s=>s.trim()).filter(Boolean), approvalGranted:true }); setMsg("Protocol run started.");}catch(e){setMsg(`Run failed: ${(e as Error).message}`)}}}>Run Approved</button>
+          <button onClick={async ()=>{try{await run({ protocolId:p._id as any, now:new Date().toISOString(), providedInputs:providedInputs.split("\n").map(s=>s.trim()).filter(Boolean), approvalGranted:true }); setMsg("Protocol run started.");}catch(e){setMsg(`Run failed: ${(e as Error).message}`)}}}>Run Approved</button>
         </div>
       ))}
 

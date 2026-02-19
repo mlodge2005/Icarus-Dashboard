@@ -10,7 +10,18 @@ export const list = query({ args: {}, handler: async (ctx) => ctx.db.query("task
 export const create = mutation({
   args: { title: v.string(), description: v.optional(v.string()), status, priority, dueDate: v.optional(v.string()), tags: v.array(v.string()), projectId: v.optional(v.id("projects")), externalLinks: v.array(v.string()), now: v.string() },
   handler: async (ctx, a) => {
-    const id = await ctx.db.insert("tasks", { ...a, createdAt: a.now, updatedAt: a.now });
+    const id = await ctx.db.insert("tasks", {
+      title: a.title,
+      description: a.description,
+      status: a.status,
+      priority: a.priority,
+      dueDate: a.dueDate,
+      tags: a.tags,
+      projectId: a.projectId,
+      externalLinks: a.externalLinks,
+      createdAt: a.now,
+      updatedAt: a.now,
+    });
     await appendActivity(ctx, { eventType: "task_created", entityType: "task", entityId: id, payload: JSON.stringify({ title: a.title }), createdAt: a.now });
     return id;
   }

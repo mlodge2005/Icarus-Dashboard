@@ -18,7 +18,7 @@ export const upsert = mutation({
       await ctx.db.patch(existing._id, { status: a.status, requirement: a.requirement, lastResult: a.lastResult, fixHint: a.fixHint, lastCheckedAt: a.now, updatedAt: a.now });
       return existing._id;
     }
-    return await ctx.db.insert("capabilities", { ...a, lastCheckedAt: a.now, updatedAt: a.now });
+    return await ctx.db.insert("capabilities", { name: a.name, status: a.status, requirement: a.requirement, lastResult: a.lastResult, fixHint: a.fixHint, lastCheckedAt: a.now, updatedAt: a.now });
   },
 });
 
@@ -26,27 +26,9 @@ export const autoProbe = mutation({
   args: { now: v.string() },
   handler: async (ctx, a) => {
     const checks = [
-      {
-        name: "GitHub Push",
-        status: "available" as const,
-        requirement: "SSH key configured",
-        lastResult: "Assumed available (last push succeeded)",
-        fixHint: "Verify by pushing a no-op commit if uncertain",
-      },
-      {
-        name: "Convex Deploy",
-        status: process.env.CONVEX_DEPLOYMENT ? ("available" as const) : ("blocked" as const),
-        requirement: "CONVEX_DEPLOYMENT",
-        lastResult: process.env.CONVEX_DEPLOYMENT ? "env present" : "missing env",
-        fixHint: "Set CONVEX_DEPLOYMENT",
-      },
-      {
-        name: "Agent API Auth",
-        status: process.env.AGENT_KEY ? ("available" as const) : ("blocked" as const),
-        requirement: "AGENT_KEY",
-        lastResult: process.env.AGENT_KEY ? "env present" : "missing env",
-        fixHint: "Set AGENT_KEY",
-      },
+      { name: "GitHub Push", status: "available" as const, requirement: "SSH key configured", lastResult: "Assumed available (last push succeeded)", fixHint: "Verify by pushing a no-op commit if uncertain" },
+      { name: "Convex Deploy", status: process.env.CONVEX_DEPLOYMENT ? ("available" as const) : ("blocked" as const), requirement: "CONVEX_DEPLOYMENT", lastResult: process.env.CONVEX_DEPLOYMENT ? "env present" : "missing env", fixHint: "Set CONVEX_DEPLOYMENT" },
+      { name: "Agent API Auth", status: process.env.AGENT_KEY ? ("available" as const) : ("blocked" as const), requirement: "AGENT_KEY", lastResult: process.env.AGENT_KEY ? "env present" : "missing env", fixHint: "Set AGENT_KEY" },
     ];
 
     const ids: string[] = [];
