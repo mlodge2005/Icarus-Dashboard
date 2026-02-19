@@ -17,7 +17,19 @@ export default defineSchema({
   taskDocuments: defineTable({ taskId: v.id("tasks"), documentId: v.id("documents"), createdAt: v.string() }).index("by_task", ["taskId"]),
   activityEvents: defineTable({ eventType: v.string(), entityType: v.string(), entityId: v.string(), payload: v.string(), summary: v.string(), createdAt: v.string() }).index("by_entity", ["entityType", "entityId"]),
   capabilities: defineTable({ name: v.string(), status: capabilityStatus, requirement: v.string(), lastCheckedAt: v.optional(v.string()), lastResult: v.optional(v.string()), fixHint: v.optional(v.string()), updatedAt: v.string() }).index("by_name", ["name"]),
-  protocols: defineTable({ name: v.string(), trigger: v.union(v.literal("manual"), v.literal("schedule"), v.literal("event")), objective: v.string(), steps: v.array(v.string()), approvalsRequired: v.boolean(), active: v.boolean(), createdAt: v.string(), updatedAt: v.string() }).index("by_name", ["name"]),
+  protocols: defineTable({
+    name: v.string(),
+    trigger: v.union(v.literal("manual"), v.literal("schedule"), v.literal("event")),
+    objective: v.string(),
+    definitionOfDone: v.optional(v.string()),
+    requiredInputs: v.array(v.string()),
+    steps: v.array(v.string()),
+    approvalsRequired: v.boolean(),
+    templateCategory: v.optional(v.string()),
+    active: v.boolean(),
+    createdAt: v.string(),
+    updatedAt: v.string()
+  }).index("by_name", ["name"]).index("by_template_category", ["templateCategory"]),
   protocolRuns: defineTable({ protocolId: v.id("protocols"), status: protocolRunStatus, startedAt: v.string(), endedAt: v.optional(v.string()), output: v.optional(v.string()), error: v.optional(v.string()) }).index("by_protocol", ["protocolId"]),
   protocolRunSteps: defineTable({ runId: v.id("protocolRuns"), stepIndex: v.number(), stepText: v.string(), status: protocolStepStatus, startedAt: v.optional(v.string()), endedAt: v.optional(v.string()), error: v.optional(v.string()) }).index("by_run", ["runId"]),
 });

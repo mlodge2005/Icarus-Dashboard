@@ -5,7 +5,7 @@ export const api = {
   documents: { list: "documents:list", create: "documents:create", attachToTask: "documents:attachToTask" },
   activity: { listGlobal: "activity:listGlobal", append: "activity:append" },
   capabilities: { list: "capabilities:list", upsert: "capabilities:upsert", autoProbe: "capabilities:autoProbe" },
-  protocols: { list: "protocols:list", create: "protocols:create", createTemplateSet: "protocols:createTemplateSet", run: "protocols:run", listRuns: "protocols:listRuns", runSteps: "protocols:runSteps" },
+  protocols: { list: "protocols:list", create: "protocols:create", createTemplateSet: "protocols:createTemplateSet", run: "protocols:run", listRuns: "protocols:listRuns", runSteps: "protocols:runSteps", analytics: "protocols:analytics" },
   ops: { snapshot: "ops:snapshot" },
   system: { status: "system:status" }
 } as const;
