@@ -9,6 +9,10 @@ export type Protocol = {
   definitionOfDone?: string;
   requiredInputs?: string[];
   templateCategory?: string;
+  allowNoInput?: boolean;
+  scheduleEnabled?: boolean;
+  scheduleIntervalMinutes?: number;
+  lastScheduledRunAt?: string;
 };
 
 export type ProtocolRun = {

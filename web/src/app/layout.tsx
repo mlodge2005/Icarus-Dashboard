@@ -21,8 +21,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <RuntimeAutoProbe />
             <header style={{ borderBottom: "1px solid var(--border)", background: "var(--panel)", color: "var(--text)" }}>
               <div className="wrap" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                <strong style={{ color: "var(--text)" }}>Icarus Hub</strong>
-                <HeaderStatus />
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 12, justifyContent: "flex-start" }}>
+                  <strong style={{ color: "var(--text)" }}>Icarus Hub</strong>
+                  <HeaderStatus />
+                </div>
                 <HeaderTime />
                 <nav style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                   <Link href="/ops">Ops</Link>
@@ -30,7 +32,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   <Link href="/protocols">Protocols</Link>
                   <Link href="/capabilities">Capabilities</Link>
                   <Link href="/projects">Projects</Link>
-                  <Link href="/content">Content</Link>
+                  <Link href="/content">Prompt Log</Link>
                   <Link href="/documents">Documents</Link>
                 </nav>
                 <HeaderAccount

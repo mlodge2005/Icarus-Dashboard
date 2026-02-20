@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
-import { useAction } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 
 export default function RuntimeAutoProbe() {
   const probe = useAction((api as any).runtime.probe);
+  const runDueSchedules = useMutation((api as any).protocols.runDueSchedules);
 
   useEffect(() => {
     let mounted = true;
@@ -15,6 +16,11 @@ export default function RuntimeAutoProbe() {
         await probe({});
       } catch {
         // non-blocking: header can still show last known state
+      }
+      try {
+        await runDueSchedules({ now: new Date().toISOString() });
+      } catch {
+        // non-blocking
       }
     };
 
@@ -27,7 +33,7 @@ export default function RuntimeAutoProbe() {
       mounted = false;
       clearInterval(id);
     };
-  }, [probe]);
+  }, [probe, runDueSchedules]);
 
   return null;
 }
