@@ -34,9 +34,9 @@ export default function Documents() {
       setMsg("Select a file first.");
       return;
     }
-    const extOk = /\.(txt|md|png)$/i.test(file.name);
+    const extOk = /\.(txt|md|png|json|csv)$/i.test(file.name);
     if (!extOk) {
-      setMsg("Upload blocked: only .txt, .md, .png are allowed.");
+      setMsg("Upload blocked: only .txt, .md, .png, .json, .csv are allowed.");
       return;
     }
     const maxBytes = 500 * 1024;
@@ -56,7 +56,7 @@ export default function Documents() {
       await upload({
         title: title || file.name,
         fileName: file.name,
-        fileType: (file.type || (file.name.toLowerCase().endsWith(".png") ? "image/png" : file.name.toLowerCase().endsWith(".md") ? "text/markdown" : "text/plain")) as any,
+        fileType: (file.type || (file.name.toLowerCase().endsWith(".png") ? "image/png" : file.name.toLowerCase().endsWith(".md") ? "text/markdown" : file.name.toLowerCase().endsWith(".json") ? "application/json" : file.name.toLowerCase().endsWith(".csv") ? "text/csv" : "text/plain")) as any,
         dataUrl,
         note: note || undefined,
         now: new Date().toISOString(),
@@ -78,10 +78,10 @@ export default function Documents() {
 
       <div className="card">
         <strong>Upload Document</strong>
-        <p><small>Allowed types: .txt, .md, .png</small></p>
+        <p><small>Allowed types: .txt, .md, .png, .json, .csv</small></p>
         <input value={title} onChange={(e)=>setTitle(e.target.value)} placeholder="Document title" style={{width:"100%"}} />
         <textarea value={note} onChange={(e)=>setNote(e.target.value)} placeholder="Optional note" style={{width:"100%",marginTop:8}} />
-        <input type="file" accept=".txt,.md,.png,text/plain,text/markdown,image/png" onChange={(e)=>setFile(e.target.files?.[0] ?? null)} />
+        <input type="file" accept=".txt,.md,.png,.json,.csv,text/plain,text/markdown,image/png,application/json,text/csv" onChange={(e)=>setFile(e.target.files?.[0] ?? null)} />
         <div style={{marginTop:8}}>
           <button onClick={()=>void doUpload()}>Upload</button>
         </div>
