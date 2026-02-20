@@ -5,6 +5,7 @@ import HeaderStatus from "@/components/header-status";
 import EnvHealth from "@/components/env-health";
 import HeaderTime from "@/components/header-time";
 import HeaderAccount from "@/components/header-account";
+import RuntimeAutoProbe from "@/components/runtime-auto-probe";
 import AppSessionProvider from "@/components/session-provider";
 import { auth } from "@/auth";
 
@@ -17,6 +18,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <AppSessionProvider session={session}>
           <EnvHealth />
           <ConvexClientProvider>
+            <RuntimeAutoProbe />
             <header style={{ borderBottom: "1px solid var(--border)", background: "var(--panel)", color: "var(--text)" }}>
               <div className="wrap" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
                 <strong style={{ color: "var(--text)" }}>Icarus Hub</strong>
