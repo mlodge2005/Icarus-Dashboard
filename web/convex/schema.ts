@@ -46,6 +46,13 @@ export default defineSchema({
     level: v.union(v.literal("info"), v.literal("start"), v.literal("end"), v.literal("error")),
     createdAt: v.string(),
   }).index("by_created", ["createdAt"]),
+  processingState: defineTable({
+    key: v.string(),
+    processing: v.boolean(),
+    reason: v.optional(v.string()),
+    timeoutAt: v.optional(v.string()),
+    updatedAt: v.string(),
+  }).index("by_key", ["key"]),
   projectArtifacts: defineTable({
     projectId: v.id("projects"),
     fileName: v.string(),

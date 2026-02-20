@@ -138,9 +138,10 @@ export const runDueSchedules = mutation({
     const executed: string[] = [];
 
     for (const p of protocols) {
-      if (!p.active || p.trigger !== "schedule" || !p.scheduleEnabled || !p.scheduleIntervalMinutes || p.scheduleIntervalMinutes <= 0) continue;
+      if (!p.active || p.trigger !== "schedule" || !p.scheduleEnabled || !p.scheduleIntervalMinutes) continue;
+      const interval = Math.max(10, Math.min(44640, p.scheduleIntervalMinutes));
       const last = p.lastScheduledRunAt ? new Date(p.lastScheduledRunAt).getTime() : 0;
-      const due = !last || (nowMs - last) >= p.scheduleIntervalMinutes * 60_000;
+      const due = !last || (nowMs - last) >= interval * 60_000;
       if (!due) continue;
       if (p.approvalsRequired) {
         await appendActivity(ctx, { eventType: "protocol_schedule_skipped", entityType: "protocol", entityId: p._id, payload: JSON.stringify({ protocolId: p._id, reason: "approval_required" }), createdAt: a.now });

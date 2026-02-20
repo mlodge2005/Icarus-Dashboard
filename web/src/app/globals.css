@@ -59,6 +59,7 @@ small { color: #A8B0BA; }
 
 /* Buttons */
 button {
+  font-family: inherit;
   border-radius: 6px;
   padding: 6px 10px;
   font-weight: 600;
@@ -108,6 +109,7 @@ button:active,
 input,
 textarea,
 select {
+  font-family: inherit;
   width: 100%;
   background: #0E141B;
   color: var(--text);

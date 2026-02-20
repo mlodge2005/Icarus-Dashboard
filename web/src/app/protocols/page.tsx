@@ -80,13 +80,23 @@ export default function ProtocolsPage() {
         <div style={{display:"flex", gap:12, marginBottom:8}}>
           <label><input type="checkbox" checked={allowNoInput} onChange={(e)=>setAllowNoInput(e.target.checked)} /> Allow no input</label>
           <label><input type="checkbox" checked={scheduleEnabled} onChange={(e)=>setScheduleEnabled(e.target.checked)} /> Recurring schedule enabled</label>
-          <input value={scheduleIntervalMinutes} onChange={(e)=>setScheduleIntervalMinutes(e.target.value)} style={{width:120}} placeholder="interval min" />
+          <select value={scheduleIntervalMinutes} onChange={(e)=>setScheduleIntervalMinutes(e.target.value)} style={{width:180}}>
+            <option value="10">Every 10 minutes</option>
+            <option value="15">Every 15 minutes</option>
+            <option value="30">Every 30 minutes</option>
+            <option value="60">Hourly</option>
+            <option value="360">Every 6 hours</option>
+            <option value="720">Every 12 hours</option>
+            <option value="1440">Daily</option>
+            <option value="10080">Weekly</option>
+            <option value="44640">Monthly (~31 days)</option>
+          </select>
         </div>
         <label><small>Required Inputs (one per line)</small></label>
         <textarea value={requiredInputs} onChange={(e)=>setRequiredInputs(e.target.value)} placeholder="Required inputs" style={{width:"100%",height:80,marginBottom:8}} />
         <label><small>Steps (one per line)</small></label>
         <textarea value={steps} onChange={(e)=>setSteps(e.target.value)} placeholder="Steps" style={{width:"100%",height:100,marginBottom:8}} />
-        <button onClick={async ()=>{try{await create({ name, trigger, objective, definitionOfDone, requiredInputs: requiredInputs.split("\n").map(s=>s.trim()).filter(Boolean), steps:steps.split("\n").map(s=>s.trim()).filter(Boolean), approvalsRequired:true, allowNoInput, scheduleEnabled, scheduleIntervalMinutes: Number(scheduleIntervalMinutes || "0") || undefined, templateCategory:"custom", now:new Date().toISOString() }); setMsg("Protocol created.");}catch(e){setMsg(`Create failed: ${(e as Error).message}`)}}}>Create Protocol</button>
+        <button onClick={async ()=>{try{await create({ name, trigger, objective, definitionOfDone, requiredInputs: requiredInputs.split("\n").map(s=>s.trim()).filter(Boolean), steps:steps.split("\n").map(s=>s.trim()).filter(Boolean), approvalsRequired:true, allowNoInput, scheduleEnabled, scheduleIntervalMinutes: Math.max(10, Math.min(44640, Number(scheduleIntervalMinutes || "60"))), templateCategory:"custom", now:new Date().toISOString() }); setMsg("Protocol created.");}catch(e){setMsg(`Create failed: ${(e as Error).message}`)}}}>Create Protocol</button>
       </div>
 
       <h3 style={{marginTop:16}}>Protocols</h3>
@@ -125,14 +135,24 @@ export default function ProtocolsPage() {
             <div style={{display:"flex", gap:12, marginBottom:8}}>
               <label><input type="checkbox" checked={editAllowNoInput} onChange={(e)=>setEditAllowNoInput(e.target.checked)} /> Allow no input</label>
               <label><input type="checkbox" checked={editScheduleEnabled} onChange={(e)=>setEditScheduleEnabled(e.target.checked)} /> Recurring schedule enabled</label>
-              <input value={editScheduleIntervalMinutes} onChange={(e)=>setEditScheduleIntervalMinutes(e.target.value)} style={{width:120}} placeholder="interval min" />
+              <select value={editScheduleIntervalMinutes} onChange={(e)=>setEditScheduleIntervalMinutes(e.target.value)} style={{width:180}}>
+              <option value="10">Every 10 minutes</option>
+              <option value="15">Every 15 minutes</option>
+              <option value="30">Every 30 minutes</option>
+              <option value="60">Hourly</option>
+              <option value="360">Every 6 hours</option>
+              <option value="720">Every 12 hours</option>
+              <option value="1440">Daily</option>
+              <option value="10080">Weekly</option>
+              <option value="44640">Monthly (~31 days)</option>
+            </select>
             </div>
             <label><small>Required Inputs</small></label>
             <textarea value={editRequired} onChange={(e)=>setEditRequired(e.target.value)} style={{width:"100%",height:80,marginBottom:8}} />
             <label><small>Steps</small></label>
             <textarea value={editSteps} onChange={(e)=>setEditSteps(e.target.value)} style={{width:"100%",height:110,marginBottom:8}} />
             <div style={{display:"flex",gap:8}}>
-              <button onClick={async ()=>{try{await update({id:editing._id as any,name:editName,objective:editObjective,definitionOfDone:editDod,requiredInputs:editRequired.split("\n").map(s=>s.trim()).filter(Boolean),steps:editSteps.split("\n").map(s=>s.trim()).filter(Boolean),trigger:editTrigger,allowNoInput:editAllowNoInput,scheduleEnabled:editScheduleEnabled,scheduleIntervalMinutes:Number(editScheduleIntervalMinutes||"0")||undefined,now:new Date().toISOString()});setMsg("Protocol updated.");setEditing(null);}catch(e){setMsg((e as Error).message)}}}>Save</button>
+              <button onClick={async ()=>{try{await update({id:editing._id as any,name:editName,objective:editObjective,definitionOfDone:editDod,requiredInputs:editRequired.split("\n").map(s=>s.trim()).filter(Boolean),steps:editSteps.split("\n").map(s=>s.trim()).filter(Boolean),trigger:editTrigger,allowNoInput:editAllowNoInput,scheduleEnabled:editScheduleEnabled,scheduleIntervalMinutes:Math.max(10, Math.min(44640, Number(editScheduleIntervalMinutes||"60"))),now:new Date().toISOString()});setMsg("Protocol updated.");setEditing(null);}catch(e){setMsg((e as Error).message)}}}>Save</button>
               <button onClick={()=>setEditing(null)}>Cancel</button>
             </div>
           </div>

@@ -16,6 +16,38 @@ export const log = mutation({
   handler: async (ctx, a) => ctx.db.insert("runtimeLogs", { source: a.source, action: a.action, detail: a.detail, level: a.level, createdAt: a.now }),
 });
 
+export const setProcessing = mutation({
+  args: { processing: v.boolean(), reason: v.optional(v.string()), now: v.string(), timeoutSeconds: v.optional(v.number()) },
+  handler: async (ctx, a) => {
+    const existing = await ctx.db.query("processingState").withIndex("by_key", (q) => q.eq("key", "assistant")).first();
+    const timeoutSeconds = Math.max(10, Math.min(3600, a.timeoutSeconds ?? 120));
+    const timeoutAt = a.processing ? new Date(new Date(a.now).getTime() + timeoutSeconds * 1000).toISOString() : a.now;
+    if (existing) {
+      await ctx.db.patch(existing._id, { processing: a.processing, reason: a.reason, timeoutAt, updatedAt: a.now });
+      return existing._id;
+    }
+    return await ctx.db.insert("processingState", { key: "assistant", processing: a.processing, reason: a.reason, timeoutAt, updatedAt: a.now });
+  },
+});
+
+export const failSafeTick = mutation({
+  args: { now: v.string() },
+  handler: async (ctx, a) => {
+    const state = await ctx.db.query("processingState").withIndex("by_key", (q) => q.eq("key", "assistant")).first();
+    if (!state || !state.processing) return { changed: false };
+    const gateway = await ctx.db.query("runtimeMonitors").withIndex("by_key", (q) => q.eq("key", "openclaw_gateway")).first();
+    const timedOut = !!state.timeoutAt && new Date(a.now).getTime() > new Date(state.timeoutAt).getTime();
+    const gatewayDown = gateway?.status === "offline";
+    if (timedOut || gatewayDown) {
+      const reason = timedOut ? "failsafe_timeout" : "failsafe_gateway_offline";
+      await ctx.db.patch(state._id, { processing: false, reason, timeoutAt: a.now, updatedAt: a.now });
+      await ctx.db.insert("runtimeLogs", { source: "runtime", action: "processing_failsafe", detail: reason, level: "error", createdAt: a.now });
+      return { changed: true, reason };
+    }
+    return { changed: false };
+  },
+});
+
 export const upsert = mutation({
   args: {
     key: v.string(),
