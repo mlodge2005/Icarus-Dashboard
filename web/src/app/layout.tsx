@@ -11,9 +11,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <EnvHealth />
         <ConvexClientProvider>
-          <header style={{ borderBottom: "1px solid #e7e7e7", background: "#fff" }}>
+          <header style={{ borderBottom: "1px solid var(--border)", background: "var(--panel)", color: "var(--text)" }}>
             <div className="wrap" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-              <strong>Wren OS</strong>
+              <strong style={{ color: "var(--text)" }}>Icarus Hub</strong>
               <HeaderStatus />
               <HeaderTime />
               <nav style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
