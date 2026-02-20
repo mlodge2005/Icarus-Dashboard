@@ -11,7 +11,11 @@ export type Protocol = {
   templateCategory?: string;
   allowNoInput?: boolean;
   scheduleEnabled?: boolean;
+  scheduleMode?: "interval" | "weekly";
   scheduleIntervalMinutes?: number;
+  scheduleWeekday?: "sun"|"mon"|"tue"|"wed"|"thu"|"fri"|"sat";
+  scheduleTime?: string;
+  scheduleTimezone?: string;
   lastScheduledRunAt?: string;
 };
 

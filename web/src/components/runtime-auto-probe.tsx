@@ -20,7 +20,7 @@ export default function RuntimeAutoProbe() {
     };
 
     void run();
-    const id = setInterval(() => { if (mounted) void run(); }, 60000);
+    const id = setInterval(() => { if (mounted) void run(); }, 600000);
 
     return () => { mounted = false; clearInterval(id); };
   }, [probe, runDueSchedules, failSafeTick]);
