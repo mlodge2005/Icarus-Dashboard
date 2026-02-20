@@ -8,13 +8,13 @@ export default function Documents() {
   const docs = (useQuery(api.documents.list as any, {}) as any[] | undefined) ?? [];
   const upload = useMutation(api.documents.upload as any);
   const remove = useMutation(api.documents.remove as any);
-  const createSummary = useMutation(api.documents.createProjectSummary as any);
   const { data: session } = useSession();
 
   const [msg, setMsg] = useState("");
   const [search, setSearch] = useState("");
   const [title, setTitle] = useState("Uploaded Document");
   const [note, setNote] = useState("");
+  const [file, setFile] = useState<File | null>(null);
 
   const filtered = useMemo(() => docs.filter((d) =>
     (d.title || "").toLowerCase().includes(search.toLowerCase()) ||
@@ -29,8 +29,11 @@ export default function Documents() {
     uploadedByImage: session?.user?.image ?? undefined,
   } as const;
 
-  const onUpload = async (file: File | null) => {
-    if (!file) return;
+  const doUpload = async () => {
+    if (!file) {
+      setMsg("Select a file first.");
+      return;
+    }
     const extOk = /\.(txt|md|png)$/i.test(file.name);
     if (!extOk) {
       setMsg("Upload blocked: only .txt, .md, .png are allowed.");
@@ -41,6 +44,7 @@ export default function Documents() {
       setMsg(`Upload blocked: file too large (${Math.round(file.size/1024)}KB). Max 500KB.`);
       return;
     }
+
     const dataUrl = await new Promise<string>((resolve, reject) => {
       const r = new FileReader();
       r.onload = () => resolve(String(r.result));
@@ -60,6 +64,7 @@ export default function Documents() {
       });
       setMsg(`Document uploaded to library: ${file.name}`);
       setNote("");
+      setFile(null);
     } catch (e) {
       setMsg((e as Error).message);
     }
@@ -76,9 +81,9 @@ export default function Documents() {
         <p><small>Allowed types: .txt, .md, .png</small></p>
         <input value={title} onChange={(e)=>setTitle(e.target.value)} placeholder="Document title" style={{width:"100%"}} />
         <textarea value={note} onChange={(e)=>setNote(e.target.value)} placeholder="Optional note" style={{width:"100%",marginTop:8}} />
-        <input type="file" accept=".txt,.md,.png,text/plain,text/markdown,image/png" onChange={(e)=>void onUpload(e.target.files?.[0] ?? null)} />
+        <input type="file" accept=".txt,.md,.png,text/plain,text/markdown,image/png" onChange={(e)=>setFile(e.target.files?.[0] ?? null)} />
         <div style={{marginTop:8}}>
-          <button onClick={async()=>{try{await createSummary({ now: new Date().toISOString(), uploadedByType:"icarus", uploadedByName:"Icarus" }); setMsg("Project summary created in docs hub.");}catch(e){setMsg((e as Error).message)}}}>Create Project Summary in Docs Hub</button>
+          <button onClick={()=>void doUpload()}>Upload</button>
         </div>
       </div>
 
