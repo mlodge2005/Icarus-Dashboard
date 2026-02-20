@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
     const normalized = normalizeState(body);
     if (normalized === "processing") {
-      await convex.mutation("runtime:setProcessing" as any, { processing: true, reason: "agent_state_processing", now, timeoutSeconds: 600 });
+      await convex.mutation("runtime:setProcessing" as any, { processing: true, reason: "agent_state_processing", now, timeoutSeconds: 90 });
     } else if (normalized === "idle") {
       await convex.mutation("runtime:setProcessing" as any, { processing: false, reason: "agent_state_idle", now });
     }
