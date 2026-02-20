@@ -6,6 +6,13 @@ function oneLine(input: unknown, fallback: string) {
   return (s || fallback).slice(0, 280);
 }
 
+function normalizeState(body: any): "processing" | "idle" | "unknown" {
+  const raw = String(body.state ?? body.status ?? body.phase ?? body.event ?? "").toLowerCase();
+  if (["processing", "busy", "running", "thinking", "responding", "in_progress", "prompt"].some((k) => raw.includes(k))) return "processing";
+  if (["idle", "done", "completed", "success", "response", "stopped", "ready"].some((k) => raw.includes(k))) return "idle";
+  return "unknown";
+}
+
 export async function POST(req: NextRequest) {
   try {
     const expected = process.env.AGENT_STATE_API_KEY;
@@ -24,7 +31,14 @@ export async function POST(req: NextRequest) {
     const convex = new ConvexHttpClient(convexUrl);
     await convex.mutation("promptLogs:append" as any, { promptSummary, actionSummary, source: "agent-state-publisher", now });
 
-    return NextResponse.json({ ok: true });
+    const normalized = normalizeState(body);
+    if (normalized === "processing") {
+      await convex.mutation("runtime:setProcessing" as any, { processing: true, reason: "agent_state_processing", now, timeoutSeconds: 600 });
+    } else if (normalized === "idle") {
+      await convex.mutation("runtime:setProcessing" as any, { processing: false, reason: "agent_state_idle", now });
+    }
+
+    return NextResponse.json({ ok: true, normalized });
   } catch (e) {
     return NextResponse.json({ ok: false, error: (e as Error).message }, { status: 500 });
   }
