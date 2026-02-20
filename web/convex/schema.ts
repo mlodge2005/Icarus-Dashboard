@@ -29,7 +29,14 @@ export default defineSchema({
     updatedAt: v.string(),
   }).index("by_status", ["status"]).index("by_queue", ["queuePosition"]),
   executionState: defineTable({ mode: v.union(v.literal("running"), v.literal("paused")), updatedAt: v.string() }),
-  projectArtifacts: defineTable({ projectId: v.id("projects"), title: v.string(), url: v.optional(v.string()), note: v.optional(v.string()), createdAt: v.string() }).index("by_project", ["projectId"]),
+  projectArtifacts: defineTable({
+    projectId: v.id("projects"),
+    fileName: v.string(),
+    fileType: v.union(v.literal("text/plain"), v.literal("text/markdown"), v.literal("image/png")),
+    dataUrl: v.string(),
+    note: v.optional(v.string()),
+    createdAt: v.string(),
+  }).index("by_project", ["projectId"]),
   projectSteps: defineTable({ projectId: v.id("projects"), stepIndex: v.number(), text: v.string(), status: projectStepStatus, updatedAt: v.string() }).index("by_project", ["projectId"]),
 
   tasks: defineTable({ title: v.string(), description: v.optional(v.string()), status, priority, dueDate: v.optional(v.string()), tags: v.array(v.string()), blockerReason: v.optional(blockerReason), projectId: v.optional(v.id("projects")), externalLinks: v.array(v.string()), createdAt: v.string(), updatedAt: v.string() }).index("by_status", ["status"]).index("by_project", ["projectId"]),

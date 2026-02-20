@@ -31,10 +31,32 @@ export default function Projects() {
   const artifacts = (useQuery(api.projects.artifactsByProject as any, openProject ? { projectId: openProject._id } : "skip") as any[] | undefined) ?? [];
   const steps = (useQuery(api.projects.stepsByProject as any, openProject ? { projectId: openProject._id } : "skip") as any[] | undefined) ?? [];
 
+  const onUpload = async (projectId: string, file: File | null) => {
+    if (!file) return;
+    const allowed = ["text/plain", "text/markdown", "image/png"];
+    const extOk = /\.(txt|md|png)$/i.test(file.name);
+    if (!allowed.includes(file.type) || !extOk) {
+      setMsg("Upload blocked: only .txt, .md, .png are allowed.");
+      return;
+    }
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result));
+      r.onerror = () => reject(new Error("Failed to read file"));
+      r.readAsDataURL(file);
+    });
+    try {
+      await addArtifact({ projectId, fileName: file.name, fileType: file.type as any, dataUrl, now: new Date().toISOString() });
+      setMsg("Artifact uploaded.");
+    } catch (e) {
+      setMsg((e as Error).message);
+    }
+  };
+
   return (
     <div className="wrap">
       <h1>Projects</h1>
-      <p><small>Phase 1+2: queue/state machine + execution ticks from specs. Click a project card to expand inline details.</small></p>
+      <p><small>Phase 2: click a project to expand inline details, plan steps, and upload artifacts (.txt/.md/.png).</small></p>
       {msg ? <small>{msg}</small> : null}
 
       <div className="card">
@@ -79,7 +101,7 @@ export default function Projects() {
 
             {isOpen ? (
               <div style={{marginTop:10,borderTop:"1px solid #eee",paddingTop:10}}>
-                <p><small>Inline project details (expand/collapse). Edit instructions and attach artifacts.</small></p>
+                <p><small>Inline project details (expand/collapse). Edit instructions and upload artifacts.</small></p>
                 <textarea defaultValue={p.outcome ?? ""} id={`outcome-${p._id}`} style={{width:"100%",marginTop:8}} placeholder="Outcome" />
                 <textarea defaultValue={p.specs ?? ""} id={`specs-${p._id}`} style={{width:"100%",marginTop:8,height:120}} placeholder="Specs" />
                 <textarea defaultValue={p.definitionOfDone ?? ""} id={`dod-${p._id}`} style={{width:"100%",marginTop:8}} placeholder="Definition of done" />
@@ -89,12 +111,10 @@ export default function Projects() {
                 <h4 style={{marginTop:12}}>Plan Steps</h4>
                 {steps.length===0 ? <div><small>No steps yet. Click Build Plan.</small></div> : steps.map((s:any)=><div key={s._id}><small>#{s.stepIndex+1}</small> {s.text} — {s.status}</div>)}
 
-                <h4 style={{marginTop:12}}>Artifacts</h4>
-                <input id={`art-title-${p._id}`} defaultValue="Spec Artifact" placeholder="Artifact title" style={{width:"100%"}} />
-                <input id={`art-url-${p._id}`} placeholder="Artifact URL (optional)" style={{width:"100%",marginTop:8}} />
-                <textarea id={`art-note-${p._id}`} placeholder="Artifact note" style={{width:"100%",marginTop:8}} />
-                <button onClick={async()=>{try{const t=(document.getElementById(`art-title-${p._id}`) as HTMLInputElement).value; const u=(document.getElementById(`art-url-${p._id}`) as HTMLInputElement).value; const n=(document.getElementById(`art-note-${p._id}`) as HTMLTextAreaElement).value; await addArtifact({projectId:p._id,title:t,url:u||undefined,note:n||undefined,now:new Date().toISOString()}); setMsg("Artifact added.");}catch(e){setMsg((e as Error).message)}}}>Add Artifact</button>
-                {artifacts.map((a)=> <div className="card" key={a._id}><strong>{a.title}</strong><div>{a.url ? <a href={a.url} target="_blank">{a.url}</a> : null}</div><small>{a.note ?? ""}</small></div>)}
+                <h4 style={{marginTop:12}}>Document Upload</h4>
+                <p><small>Allowed file types: .txt, .md, .png</small></p>
+                <input type="file" accept=".txt,.md,.png,text/plain,text/markdown,image/png" onChange={(e)=>void onUpload(p._id, e.target.files?.[0] ?? null)} />
+                {artifacts.map((a)=> <div className="card" key={a._id}><strong>{a.fileName}</strong> <small>({a.fileType})</small><div><a href={a.dataUrl} download={a.fileName}>Download</a></div><small>{a.note ?? ""}</small></div>)}
               </div>
             ) : null}
           </div>

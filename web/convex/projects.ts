@@ -184,10 +184,13 @@ export const setInactive = mutation({
 });
 
 export const addArtifact = mutation({
-  args: { projectId: v.id("projects"), title: v.string(), url: v.optional(v.string()), note: v.optional(v.string()), now: v.string() },
+  args: { projectId: v.id("projects"), fileName: v.string(), fileType: v.union(v.literal("text/plain"), v.literal("text/markdown"), v.literal("image/png")), dataUrl: v.string(), note: v.optional(v.string()), now: v.string() },
   handler: async (ctx, a) => {
-    const id = await ctx.db.insert("projectArtifacts", { projectId: a.projectId, title: a.title, url: a.url, note: a.note, createdAt: a.now });
-    await appendActivity(ctx, { eventType: "project_artifact_added", entityType: "project", entityId: a.projectId, payload: JSON.stringify({ artifactId: id, title: a.title }), createdAt: a.now });
+    const lower = a.fileName.toLowerCase();
+    const okExt = lower.endsWith('.txt') || lower.endsWith('.md') || lower.endsWith('.png')
+    if (!okExt) throw new Error("Unsupported file type. Allowed: .txt, .md, .png");
+    const id = await ctx.db.insert("projectArtifacts", { projectId: a.projectId, fileName: a.fileName, fileType: a.fileType, dataUrl: a.dataUrl, note: a.note, createdAt: a.now });
+    await appendActivity(ctx, { eventType: "project_artifact_added", entityType: "project", entityId: a.projectId, payload: JSON.stringify({ artifactId: id, fileName: a.fileName }), createdAt: a.now });
     return id;
   }
 });
