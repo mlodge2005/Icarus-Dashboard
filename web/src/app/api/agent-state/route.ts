@@ -15,10 +15,10 @@ function normalizeState(body: any): "processing" | "idle" | "unknown" {
 
 export async function POST(req: NextRequest) {
   try {
-    const expected = process.env.AGENT_STATE_API_KEY;
-    if (!expected) return NextResponse.json({ ok: false, error: "AGENT_STATE_API_KEY missing" }, { status: 500 });
+    const expectedKeys = [process.env.AGENT_STATE_API_KEY, process.env.PROMPT_LOG_HOOK_SECRET].filter(Boolean) as string[];
+    if (expectedKeys.length === 0) return NextResponse.json({ ok: false, error: "AGENT_STATE_API_KEY missing" }, { status: 500 });
     const provided = req.headers.get("x-api-key") ?? req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
-    if (provided !== expected) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+    if (!expectedKeys.includes(provided)) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
 
     const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
     if (!convexUrl) return NextResponse.json({ ok: false, error: "NEXT_PUBLIC_CONVEX_URL missing" }, { status: 500 });
