@@ -39,6 +39,13 @@ export default defineSchema({
     lastCheckedAt: v.optional(v.string()),
     updatedAt: v.string(),
   }).index("by_key", ["key"]),
+  runtimeLogs: defineTable({
+    source: v.string(),
+    action: v.string(),
+    detail: v.optional(v.string()),
+    level: v.union(v.literal("info"), v.literal("start"), v.literal("end"), v.literal("error")),
+    createdAt: v.string(),
+  }).index("by_created", ["createdAt"]),
   projectArtifacts: defineTable({
     projectId: v.id("projects"),
     fileName: v.string(),

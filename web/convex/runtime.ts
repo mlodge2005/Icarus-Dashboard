@@ -3,6 +3,18 @@ import { v } from "convex/values";
 import { api } from "./_generated/api";
 
 export const list = query({ args: {}, handler: async (ctx) => ctx.db.query("runtimeMonitors").collect() });
+export const recentLogs = query({ args: {}, handler: async (ctx) => (await ctx.db.query("runtimeLogs").collect()).sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,100) });
+
+export const log = mutation({
+  args: {
+    source: v.string(),
+    action: v.string(),
+    detail: v.optional(v.string()),
+    level: v.union(v.literal("info"), v.literal("start"), v.literal("end"), v.literal("error")),
+    now: v.string(),
+  },
+  handler: async (ctx, a) => ctx.db.insert("runtimeLogs", { source: a.source, action: a.action, detail: a.detail, level: a.level, createdAt: a.now }),
+});
 
 export const upsert = mutation({
   args: {
@@ -40,19 +52,23 @@ export const probe = action({
   args: {},
   handler: async (ctx) => {
     const now = new Date().toISOString();
+    await ctx.runMutation(api.runtime.log as any, { source: "runtime", action: "probe_started", level: "start", now });
+
     const laptopIp = process.env.MARKS_DESKTOP_IP ?? "100.119.18.116";
     const gatewayUrl = process.env.OPENCLAW_GATEWAY_STATUS_URL ?? `http://${laptopIp}:18789`;
     const desktopUrl = process.env.MARKS_DESKTOP_BROWSER_URL ?? `http://${laptopIp}`;
-    const mediums = (process.env.OPENCLAW_ACTIVE_MEDIA ?? "webchat,discord").split(",").map(s=>s.trim()).filter(Boolean);
+    const mediums = (process.env.OPENCLAW_ACTIVE_MEDIA ?? "webchat,discord,tui").split(",").map(s=>s.trim()).filter(Boolean);
 
     const gw = await checkUrl(gatewayUrl);
-    await ctx.runMutation(api.runtime.upsert, { key: "openclaw_gateway", label: "OpenClaw Gateway", medium: "gateway", target: gatewayUrl, status: gw.status, details: gw.details, now });
+    await ctx.runMutation(api.runtime.upsert as any, { key: "openclaw_gateway", label: "OpenClaw Gateway", medium: "gateway", target: gatewayUrl, status: gw.status, details: gw.details, now });
 
     const desk = await checkUrl(desktopUrl);
-    await ctx.runMutation(api.runtime.upsert, { key: "marks_desktop_browser", label: "Marks Desktop Browser", medium: "tailscale", target: desktopUrl, status: desk.status, details: desk.details, now });
+    await ctx.runMutation(api.runtime.upsert as any, { key: "marks_desktop_browser", label: "Marks Desktop Browser", medium: "tailscale", target: desktopUrl, status: desk.status, details: desk.details, now });
 
     const mediumStatus = mediums.length ? "online" : "unknown";
-    await ctx.runMutation(api.runtime.upsert, { key: "openclaw_mediums", label: "OpenClaw Active Mediums", medium: "channels", target: mediums.join(", "), status: mediumStatus, details: `${mediums.length} medium(s) configured`, now });
+    await ctx.runMutation(api.runtime.upsert as any, { key: "openclaw_mediums", label: "OpenClaw Active Mediums", medium: "channels", target: mediums.join(", "), status: mediumStatus, details: `${mediums.length} medium(s) configured`, now });
+
+    await ctx.runMutation(api.runtime.log as any, { source: "runtime", action: "probe_completed", detail: `gateway=${gw.status}; desktop=${desk.status}; mediums=${mediums.join(",")}`, level: "end", now: new Date().toISOString() });
 
     return { ok: true, checkedAt: now };
   },
