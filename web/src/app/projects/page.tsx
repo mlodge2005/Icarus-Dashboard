@@ -17,6 +17,7 @@ export default function Projects() {
   const resolveBlocked = useMutation(api.projects.resolveBlocked as any);
   const setInactive = useMutation(api.projects.setInactive as any);
   const addArtifact = useMutation(api.projects.addArtifact as any);
+  const removeProject = useMutation(api.projects.remove as any);
   const buildPlan = useMutation(api.projects.buildPlan as any);
   const runTick = useMutation(api.projects.runTick as any);
 
@@ -26,6 +27,7 @@ export default function Projects() {
   const [specs, setSpecs] = useState("- Define scope\n- Build feature\n- Validate outcomes");
   const [dod, setDod] = useState("Done means outcome delivered and validated.");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   const openProject = projects.find((p) => p._id === openId) ?? null;
   const artifacts = (useQuery(api.projects.artifactsByProject as any, openProject ? { projectId: openProject._id } : "skip") as any[] | undefined) ?? [];
@@ -82,7 +84,8 @@ export default function Projects() {
       {queue.length===0 ? <div className="card">Queue empty</div> : queue.map((q)=> <div className="card" key={q._id}>#{q.queuePosition ?? "?"} {q.name}</div>)}
 
       <h3 style={{marginTop:16}}>All Projects</h3>
-      {projects.map((p)=> {
+      <div className="card"><input value={search} onChange={(e)=>setSearch(e.target.value)} placeholder="Search projects" style={{width:"100%"}} /></div>
+      {projects.filter((p)=> (p.name||"").toLowerCase().includes(search.toLowerCase()) || (p.outcome||"").toLowerCase().includes(search.toLowerCase())).map((p)=> {
         const isOpen = openId === p._id;
         return (
           <div className="card" key={p._id}>
@@ -97,6 +100,7 @@ export default function Projects() {
               <button onClick={async()=>{try{await setBlocked({id:p._id,blockerReason:"needs_approval",blockerDetails:"Awaiting operator approval",now:new Date().toISOString()});setMsg("Project blocked + global paused.");}catch(e){setMsg((e as Error).message)}}}>Block</button>
               <button onClick={async()=>{try{await resolveBlocked({id:p._id,now:new Date().toISOString()});setMsg("Project unblocked and queued.");}catch(e){setMsg((e as Error).message)}}}>Unblock</button>
               <button onClick={async()=>{try{await buildPlan({id:p._id,now:new Date().toISOString()});setMsg("Plan built from specs.");}catch(e){setMsg((e as Error).message)}}}>Build Plan</button>
+              <button onClick={async()=>{try{await removeProject({id:p._id,now:new Date().toISOString()});setMsg("Project deleted."); if(openId===p._id) setOpenId(null);}catch(e){setMsg((e as Error).message)}}}>Delete</button>
             </div>
 
             {isOpen ? (

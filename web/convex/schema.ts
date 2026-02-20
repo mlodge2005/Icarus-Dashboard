@@ -29,7 +29,6 @@ export default defineSchema({
     updatedAt: v.string(),
   }).index("by_status", ["status"]).index("by_queue", ["queuePosition"]),
   executionState: defineTable({ mode: v.union(v.literal("running"), v.literal("paused")), updatedAt: v.string() }),
-
   runtimeMonitors: defineTable({
     key: v.string(),
     label: v.string(),
@@ -52,7 +51,21 @@ export default defineSchema({
 
   tasks: defineTable({ title: v.string(), description: v.optional(v.string()), status, priority, dueDate: v.optional(v.string()), tags: v.array(v.string()), blockerReason: v.optional(blockerReason), projectId: v.optional(v.id("projects")), externalLinks: v.array(v.string()), createdAt: v.string(), updatedAt: v.string() }).index("by_status", ["status"]).index("by_project", ["projectId"]),
   contentItems: defineTable({ title: v.string(), platform: v.string(), hook: v.string(), status: contentStatus, link: v.optional(v.string()), tags: v.array(v.string()), createdAt: v.string(), updatedAt: v.string() }).index("by_status", ["status"]),
-  documents: defineTable({ title: v.string(), url: v.optional(v.string()), note: v.optional(v.string()), createdAt: v.string(), updatedAt: v.string() }),
+  documents: defineTable({
+    docId: v.optional(v.string()),
+    title: v.string(),
+    fileName: v.optional(v.string()),
+    fileType: v.optional(v.string()),
+    dataUrl: v.optional(v.string()),
+    url: v.optional(v.string()),
+    note: v.optional(v.string()),
+    uploadedByType: v.optional(v.union(v.literal("user"), v.literal("icarus"), v.literal("other"))),
+    uploadedByName: v.optional(v.string()),
+    uploadedByEmail: v.optional(v.string()),
+    uploadedByImage: v.optional(v.string()),
+    createdAt: v.string(),
+    updatedAt: v.string()
+  }).index("by_doc_id", ["docId"]).index("by_created", ["createdAt"]),
   taskDocuments: defineTable({ taskId: v.id("tasks"), documentId: v.id("documents"), createdAt: v.string() }).index("by_task", ["taskId"]),
   activityEvents: defineTable({ eventType: v.string(), entityType: v.string(), entityId: v.string(), payload: v.string(), summary: v.string(), createdAt: v.string() }).index("by_entity", ["entityType", "entityId"]),
   capabilities: defineTable({ name: v.string(), status: capabilityStatus, requirement: v.string(), lastCheckedAt: v.optional(v.string()), lastResult: v.optional(v.string()), fixHint: v.optional(v.string()), updatedAt: v.string() }).index("by_name", ["name"]),

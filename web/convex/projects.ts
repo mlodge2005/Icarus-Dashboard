@@ -196,3 +196,17 @@ export const addArtifact = mutation({
 });
 
 export const artifactsByProject = query({ args: { projectId: v.id("projects") }, handler: async (ctx, a) => ctx.db.query("projectArtifacts").withIndex("by_project", (q) => q.eq("projectId", a.projectId)).collect() });
+
+
+export const remove = mutation({
+  args: { id: v.id("projects"), now: v.string() },
+  handler: async (ctx, a) => {
+    const arts = await ctx.db.query("projectArtifacts").withIndex("by_project", (q) => q.eq("projectId", a.id)).collect();
+    for (const x of arts) await ctx.db.delete(x._id);
+    const steps = await ctx.db.query("projectSteps").withIndex("by_project", (q) => q.eq("projectId", a.id)).collect();
+    for (const x of steps) await ctx.db.delete(x._id);
+    await ctx.db.delete(a.id);
+    await appendActivity(ctx, { eventType: "project_deleted", entityType: "project", entityId: a.id, payload: JSON.stringify({ projectId: a.id }), createdAt: a.now });
+    return true;
+  }
+});
