@@ -33,7 +33,7 @@ export const upload = mutation({
   args: {
     title: v.string(),
     fileName: v.string(),
-    fileType: v.union(v.literal("text/plain"), v.literal("text/markdown"), v.literal("image/png")),
+    fileType: v.union(v.literal("text/plain"), v.literal("text/markdown"), v.literal("image/png"), v.literal("application/json"), v.literal("text/csv")),
     dataUrl: v.string(),
     note: v.optional(v.string()),
     now: v.string(),
@@ -44,8 +44,8 @@ export const upload = mutation({
   },
   handler: async (ctx, a) => {
     const lower = a.fileName.toLowerCase();
-    const okExt = lower.endsWith(".txt") || lower.endsWith(".md") || lower.endsWith(".png");
-    if (!okExt) throw new Error("Unsupported file extension. Allowed: .txt, .md, .png");
+    const okExt = lower.endsWith(".txt") || lower.endsWith(".md") || lower.endsWith(".png") || lower.endsWith(".json") || lower.endsWith(".csv");
+    if (!okExt) throw new Error("Unsupported file extension. Allowed: .txt, .md, .png, .json, .csv");
 
     const id = await ctx.db.insert("documents", {
       docId: makeDocId(),
