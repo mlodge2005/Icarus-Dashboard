@@ -96,7 +96,7 @@ export const createProjectSummary = mutation({
       title: a.title ?? "Project Summary",
       fileName: "project-summary.md",
       fileType: "text/markdown",
-      dataUrl: `data:text/markdown;base64,${Buffer.from(note).toString("base64")}`,
+      dataUrl: `data:text/markdown;base64,${btoa(unescape(encodeURIComponent(note)))}`,
       note,
       uploadedByType: a.uploadedByType ?? "icarus",
       uploadedByName: a.uploadedByName ?? "Icarus",

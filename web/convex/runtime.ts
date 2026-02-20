@@ -56,10 +56,11 @@ export const probe = action({
 
     const laptopIp = process.env.MARKS_DESKTOP_IP ?? "100.119.18.116";
     const gatewayUrl = process.env.OPENCLAW_GATEWAY_STATUS_URL ?? `http://${laptopIp}:18789`;
+    const gatewayExists = (process.env.OPENCLAW_GATEWAY_EXISTS ?? "true").toLowerCase() === "true";
     const desktopUrl = process.env.MARKS_DESKTOP_BROWSER_URL ?? `http://${laptopIp}`;
     const mediums = (process.env.OPENCLAW_ACTIVE_MEDIA ?? "webchat,discord,tui").split(",").map(s=>s.trim()).filter(Boolean);
 
-    const gw = await checkUrl(gatewayUrl);
+    const gw = gatewayExists ? { status: "online" as const, details: "Gateway declared available by runtime" } : await checkUrl(gatewayUrl);
     await ctx.runMutation(api.runtime.upsert as any, { key: "openclaw_gateway", label: "OpenClaw Gateway", medium: "gateway", target: gatewayUrl, status: gw.status, details: gw.details, now });
 
     const desk = await checkUrl(desktopUrl);

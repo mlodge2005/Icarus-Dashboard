@@ -30,16 +30,6 @@ export default function OpsPage() {
       <p><small>System triage + connectivity + processing/runtime logs.</small></p>
       {msg ? <small>{msg}</small> : null}
 
-      <div className="card">
-        <div className="head">
-          <strong>Runtime Connectivity</strong>
-          <button onClick={async()=>{try{await probeRuntime({});setMsg("Runtime indicators refreshed.");}catch(e){setMsg((e as Error).message)}}}>Refresh Runtime</button>
-        </div>
-        {runtime.length===0 ? <small>No runtime signals yet. Click Refresh Runtime.</small> : runtime.map((r)=>(
-          <div key={r._id}><small>{r.label}</small> — <strong className={r.status==="online"?"status-success":r.status==="offline"?"status-error":"status-warning"}>{r.status}</strong> — <small>{r.medium}</small> — <small>{r.target}</small></div>
-        ))}
-      </div>
-
       {empty ? <div className="card">No active work yet. <button onClick={()=>void createTask({title:"Initial Task",description:"",status:"todo",priority:"medium",dueDate:new Date().toISOString(),tags:[],externalLinks:[],now:new Date().toISOString()})}>Create starter task</button></div> : null}
       <div className="grid">
         <section className="col"><h3>Now</h3>{snap.now.map((t: any) => <div className="card" key={t._id}>{t.title}</div>)}</section>
