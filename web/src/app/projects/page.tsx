@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 
@@ -17,34 +17,33 @@ export default function Projects() {
   const resolveBlocked = useMutation(api.projects.resolveBlocked as any);
   const setInactive = useMutation(api.projects.setInactive as any);
   const addArtifact = useMutation(api.projects.addArtifact as any);
+  const buildPlan = useMutation(api.projects.buildPlan as any);
+  const runTick = useMutation(api.projects.runTick as any);
 
   const [msg, setMsg] = useState("");
   const [name, setName] = useState("New Project");
   const [outcome, setOutcome] = useState("Desired business/technical outcome");
-  const [specs, setSpecs] = useState("Detailed specs, constraints, acceptance criteria.");
+  const [specs, setSpecs] = useState("- Define scope\n- Build feature\n- Validate outcomes");
   const [dod, setDod] = useState("Done means outcome delivered and validated.");
-  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
 
-  const activeProject = useMemo(() => projects.find((p) => p.status === "active") ?? null, [projects]);
-  const selected = projects.find((p) => p._id === activeProjectId) ?? activeProject ?? projects[0] ?? null;
-  const artifacts = (useQuery(api.projects.artifactsByProject as any, selected ? { projectId: selected._id } : "skip") as any[] | undefined) ?? [];
-
-  const [artifactTitle, setArtifactTitle] = useState("Spec Artifact");
-  const [artifactUrl, setArtifactUrl] = useState("");
-  const [artifactNote, setArtifactNote] = useState("");
+  const openProject = projects.find((p) => p._id === openId) ?? null;
+  const artifacts = (useQuery(api.projects.artifactsByProject as any, openProject ? { projectId: openProject._id } : "skip") as any[] | undefined) ?? [];
+  const steps = (useQuery(api.projects.stepsByProject as any, openProject ? { projectId: openProject._id } : "skip") as any[] | undefined) ?? [];
 
   return (
     <div className="wrap">
       <h1>Projects</h1>
-      <p><small>Execution engine: one active project max, queued projects wait, paused mode stops queue execution.</small></p>
+      <p><small>Phase 1+2: queue/state machine + execution ticks from specs. Click a project card to expand inline details.</small></p>
       {msg ? <small>{msg}</small> : null}
 
       <div className="card">
         <strong>Global Mode:</strong> {execState?.mode ?? "running"}
-        <div style={{display:"flex",gap:8,marginTop:8}}>
+        <div style={{display:"flex",gap:8,marginTop:8,flexWrap:"wrap"}}>
           <button onClick={async()=>{try{await setMode({mode:"running",now:new Date().toISOString()});setMsg("Global mode set to running.");}catch(e){setMsg((e as Error).message)}}}>Resume Queue</button>
           <button onClick={async()=>{try{await setMode({mode:"paused",now:new Date().toISOString()});setMsg("Global mode paused.");}catch(e){setMsg((e as Error).message)}}}>Pause All</button>
           <button onClick={async()=>{try{await activateNext({now:new Date().toISOString()});setMsg("Activated next queued project.");}catch(e){setMsg((e as Error).message)}}}>Activate Next</button>
+          <button onClick={async()=>{try{await runTick({now:new Date().toISOString()});setMsg("Execution tick complete.");}catch(e){setMsg((e as Error).message)}}}>Run Tick</button>
         </div>
       </div>
 
@@ -61,41 +60,46 @@ export default function Projects() {
       {queue.length===0 ? <div className="card">Queue empty</div> : queue.map((q)=> <div className="card" key={q._id}>#{q.queuePosition ?? "?"} {q.name}</div>)}
 
       <h3 style={{marginTop:16}}>All Projects</h3>
-      {projects.map((p)=> (
-        <div className="card" key={p._id}>
-          <strong>{p.name}</strong> — <small>{p.status}</small>
-          <div><small>Outcome:</small> {p.outcome ?? "n/a"}</div>
-          <div><small>Next:</small> {p.nextAction ?? "n/a"}</div>
-          {p.blockerReason ? <div><small>Blocked:</small> {p.blockerReason} {p.blockerDetails ? `- ${p.blockerDetails}` : ""}</div> : null}
-          <div style={{display:"flex",gap:8,marginTop:8,flexWrap:"wrap"}}>
-            <button onClick={()=>setActiveProjectId(p._id)}>Open</button>
-            <button onClick={async()=>{try{await enqueue({id:p._id,now:new Date().toISOString()});setMsg("Project queued.");}catch(e){setMsg((e as Error).message)}}}>Queue</button>
-            <button onClick={async()=>{try{await setInactive({id:p._id,now:new Date().toISOString()});setMsg("Project set inactive.");}catch(e){setMsg((e as Error).message)}}}>Inactive</button>
-            <button onClick={async()=>{try{await setBlocked({id:p._id,blockerReason:"needs_approval",blockerDetails:"Awaiting operator approval",now:new Date().toISOString()});setMsg("Project blocked + global paused.");}catch(e){setMsg((e as Error).message)}}}>Block</button>
-            <button onClick={async()=>{try{await resolveBlocked({id:p._id,now:new Date().toISOString()});setMsg("Project unblocked and queued.");}catch(e){setMsg((e as Error).message)}}}>Unblock</button>
+      {projects.map((p)=> {
+        const isOpen = openId === p._id;
+        return (
+          <div className="card" key={p._id}>
+            <div style={{display:"flex",justifyContent:"space-between",gap:8}}>
+              <div><strong>{p.name}</strong> — <small>{p.status ?? "inactive"}</small></div>
+              <button onClick={()=>setOpenId(isOpen ? null : p._id)}>{isOpen ? "Close" : "Open"}</button>
+            </div>
+            <div><small>Outcome:</small> {p.outcome ?? "n/a"}</div>
+            <div style={{display:"flex",gap:8,marginTop:8,flexWrap:"wrap"}}>
+              <button onClick={async()=>{try{await enqueue({id:p._id,now:new Date().toISOString()});setMsg("Project queued.");}catch(e){setMsg((e as Error).message)}}}>Queue</button>
+              <button onClick={async()=>{try{await setInactive({id:p._id,now:new Date().toISOString()});setMsg("Project set inactive.");}catch(e){setMsg((e as Error).message)}}}>Inactive</button>
+              <button onClick={async()=>{try{await setBlocked({id:p._id,blockerReason:"needs_approval",blockerDetails:"Awaiting operator approval",now:new Date().toISOString()});setMsg("Project blocked + global paused.");}catch(e){setMsg((e as Error).message)}}}>Block</button>
+              <button onClick={async()=>{try{await resolveBlocked({id:p._id,now:new Date().toISOString()});setMsg("Project unblocked and queued.");}catch(e){setMsg((e as Error).message)}}}>Unblock</button>
+              <button onClick={async()=>{try{await buildPlan({id:p._id,now:new Date().toISOString()});setMsg("Plan built from specs.");}catch(e){setMsg((e as Error).message)}}}>Build Plan</button>
+            </div>
+
+            {isOpen ? (
+              <div style={{marginTop:10,borderTop:"1px solid #eee",paddingTop:10}}>
+                <p><small>Inline project details (expand/collapse). Edit instructions and attach artifacts.</small></p>
+                <textarea defaultValue={p.outcome ?? ""} id={`outcome-${p._id}`} style={{width:"100%",marginTop:8}} placeholder="Outcome" />
+                <textarea defaultValue={p.specs ?? ""} id={`specs-${p._id}`} style={{width:"100%",marginTop:8,height:120}} placeholder="Specs" />
+                <textarea defaultValue={p.definitionOfDone ?? ""} id={`dod-${p._id}`} style={{width:"100%",marginTop:8}} placeholder="Definition of done" />
+                <textarea defaultValue={p.nextAction ?? ""} id={`next-${p._id}`} style={{width:"100%",marginTop:8}} placeholder="Next action" />
+                <button onClick={async()=>{try{const outcomeVal=(document.getElementById(`outcome-${p._id}`) as HTMLTextAreaElement).value; const specsVal=(document.getElementById(`specs-${p._id}`) as HTMLTextAreaElement).value; const dodVal=(document.getElementById(`dod-${p._id}`) as HTMLTextAreaElement).value; const nextVal=(document.getElementById(`next-${p._id}`) as HTMLTextAreaElement).value; await update({id:p._id,outcome:outcomeVal,specs:specsVal,definitionOfDone:dodVal,nextAction:nextVal,now:new Date().toISOString()}); setMsg("Project instructions updated.");}catch(e){setMsg((e as Error).message)}}}>Save Instructions</button>
+
+                <h4 style={{marginTop:12}}>Plan Steps</h4>
+                {steps.length===0 ? <div><small>No steps yet. Click Build Plan.</small></div> : steps.map((s:any)=><div key={s._id}><small>#{s.stepIndex+1}</small> {s.text} — {s.status}</div>)}
+
+                <h4 style={{marginTop:12}}>Artifacts</h4>
+                <input id={`art-title-${p._id}`} defaultValue="Spec Artifact" placeholder="Artifact title" style={{width:"100%"}} />
+                <input id={`art-url-${p._id}`} placeholder="Artifact URL (optional)" style={{width:"100%",marginTop:8}} />
+                <textarea id={`art-note-${p._id}`} placeholder="Artifact note" style={{width:"100%",marginTop:8}} />
+                <button onClick={async()=>{try{const t=(document.getElementById(`art-title-${p._id}`) as HTMLInputElement).value; const u=(document.getElementById(`art-url-${p._id}`) as HTMLInputElement).value; const n=(document.getElementById(`art-note-${p._id}`) as HTMLTextAreaElement).value; await addArtifact({projectId:p._id,title:t,url:u||undefined,note:n||undefined,now:new Date().toISOString()}); setMsg("Artifact added.");}catch(e){setMsg((e as Error).message)}}}>Add Artifact</button>
+                {artifacts.map((a)=> <div className="card" key={a._id}><strong>{a.title}</strong><div>{a.url ? <a href={a.url} target="_blank">{a.url}</a> : null}</div><small>{a.note ?? ""}</small></div>)}
+              </div>
+            ) : null}
           </div>
-        </div>
-      ))}
-
-      {selected ? (
-        <div className="card" style={{marginTop:16}}>
-          <h3>Project Detail: {selected.name}</h3>
-          <p><small>Edit outcome/specs/instructions. This is the source of truth for execution.</small></p>
-          <textarea defaultValue={selected.outcome ?? ""} id="outcomeField" style={{width:"100%",marginTop:8}} placeholder="Outcome" />
-          <textarea defaultValue={selected.specs ?? ""} id="specsField" style={{width:"100%",marginTop:8,height:120}} placeholder="Specs" />
-          <textarea defaultValue={selected.definitionOfDone ?? ""} id="dodField" style={{width:"100%",marginTop:8}} placeholder="Definition of done" />
-          <textarea defaultValue={selected.nextAction ?? ""} id="nextField" style={{width:"100%",marginTop:8}} placeholder="Next action" />
-          <button onClick={async()=>{try{const outcomeVal=(document.getElementById('outcomeField') as HTMLTextAreaElement).value; const specsVal=(document.getElementById('specsField') as HTMLTextAreaElement).value; const dodVal=(document.getElementById('dodField') as HTMLTextAreaElement).value; const nextVal=(document.getElementById('nextField') as HTMLTextAreaElement).value; await update({id:selected._id,outcome:outcomeVal,specs:specsVal,definitionOfDone:dodVal,nextAction:nextVal,now:new Date().toISOString()}); setMsg("Project instructions updated.");}catch(e){setMsg((e as Error).message)}}}>Save Instructions</button>
-
-          <h4 style={{marginTop:12}}>Artifacts</h4>
-          <p><small>Attach spec docs, links, and notes to this project.</small></p>
-          <input value={artifactTitle} onChange={(e)=>setArtifactTitle(e.target.value)} placeholder="Artifact title" style={{width:"100%"}} />
-          <input value={artifactUrl} onChange={(e)=>setArtifactUrl(e.target.value)} placeholder="Artifact URL (optional)" style={{width:"100%",marginTop:8}} />
-          <textarea value={artifactNote} onChange={(e)=>setArtifactNote(e.target.value)} placeholder="Artifact note" style={{width:"100%",marginTop:8}} />
-          <button onClick={async()=>{try{await addArtifact({projectId:selected._id,title:artifactTitle,url:artifactUrl||undefined,note:artifactNote||undefined,now:new Date().toISOString()}); setMsg("Artifact added."); setArtifactUrl(""); setArtifactNote("");}catch(e){setMsg((e as Error).message)}}}>Add Artifact</button>
-          {artifacts.map((a)=> <div className="card" key={a._id}><strong>{a.title}</strong><div>{a.url ? <a href={a.url} target="_blank">{a.url}</a> : null}</div><small>{a.note ?? ""}</small></div>)}
-        </div>
-      ) : null}
+        )
+      })}
     </div>
   );
 }

@@ -9,6 +9,7 @@ const protocolRunStatus = v.union(v.literal("queued"), v.literal("running"), v.l
 const protocolStepStatus = v.union(v.literal("pending"), v.literal("running"), v.literal("success"), v.literal("failed"));
 const blockerReason = v.union(v.literal("missing_credential"), v.literal("needs_approval"), v.literal("dependency_down"), v.literal("ambiguous_input"), v.literal("other"));
 const projectStatus = v.union(v.literal("inactive"), v.literal("queued"), v.literal("active"), v.literal("blocked"));
+const projectStepStatus = v.union(v.literal("pending"), v.literal("running"), v.literal("done"), v.literal("blocked"));
 
 export default defineSchema({
   projects: defineTable({
@@ -29,6 +30,7 @@ export default defineSchema({
   }).index("by_status", ["status"]).index("by_queue", ["queuePosition"]),
   executionState: defineTable({ mode: v.union(v.literal("running"), v.literal("paused")), updatedAt: v.string() }),
   projectArtifacts: defineTable({ projectId: v.id("projects"), title: v.string(), url: v.optional(v.string()), note: v.optional(v.string()), createdAt: v.string() }).index("by_project", ["projectId"]),
+  projectSteps: defineTable({ projectId: v.id("projects"), stepIndex: v.number(), text: v.string(), status: projectStepStatus, updatedAt: v.string() }).index("by_project", ["projectId"]),
 
   tasks: defineTable({ title: v.string(), description: v.optional(v.string()), status, priority, dueDate: v.optional(v.string()), tags: v.array(v.string()), blockerReason: v.optional(blockerReason), projectId: v.optional(v.id("projects")), externalLinks: v.array(v.string()), createdAt: v.string(), updatedAt: v.string() }).index("by_status", ["status"]).index("by_project", ["projectId"]),
   contentItems: defineTable({ title: v.string(), platform: v.string(), hook: v.string(), status: contentStatus, link: v.optional(v.string()), tags: v.array(v.string()), createdAt: v.string(), updatedAt: v.string() }).index("by_status", ["status"]),
