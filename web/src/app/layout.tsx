@@ -4,11 +4,11 @@ import { ConvexClientProvider } from "@/components/provider";
 import HeaderStatus from "@/components/header-status";
 import EnvHealth from "@/components/env-health";
 import HeaderTime from "@/components/header-time";
-import { auth, signOut } from "@/auth";
+import HeaderAccount from "@/components/header-account";
+import { auth } from "@/auth";
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
-  const email = session?.user?.email ?? "unknown";
 
   return (
     <html lang="en">
@@ -29,17 +29,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <Link href="/content">Content</Link>
                 <Link href="/documents">Documents</Link>
               </nav>
-              <div className="card" style={{ margin: 0, padding: "6px 8px", display: "flex", alignItems: "center", gap: 8 }}>
-                <small>{email}</small>
-                <form
-                  action={async () => {
-                    "use server";
-                    await signOut({ redirectTo: "/signin" });
-                  }}
-                >
-                  <button type="submit">Sign out</button>
-                </form>
-              </div>
+              <HeaderAccount
+                email={session?.user?.email}
+                image={session?.user?.image}
+                name={session?.user?.name}
+              />
             </div>
           </header>
           {children}
