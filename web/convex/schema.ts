@@ -29,6 +29,17 @@ export default defineSchema({
     updatedAt: v.string(),
   }).index("by_status", ["status"]).index("by_queue", ["queuePosition"]),
   executionState: defineTable({ mode: v.union(v.literal("running"), v.literal("paused")), updatedAt: v.string() }),
+
+  runtimeMonitors: defineTable({
+    key: v.string(),
+    label: v.string(),
+    medium: v.string(),
+    target: v.string(),
+    status: v.union(v.literal("online"), v.literal("offline"), v.literal("unknown")),
+    details: v.optional(v.string()),
+    lastCheckedAt: v.optional(v.string()),
+    updatedAt: v.string(),
+  }).index("by_key", ["key"]),
   projectArtifacts: defineTable({
     projectId: v.id("projects"),
     fileName: v.string(),

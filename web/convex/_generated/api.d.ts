@@ -19,6 +19,7 @@ import type * as lib_types from "../lib/types.js";
 import type * as ops from "../ops.js";
 import type * as projects from "../projects.js";
 import type * as protocols from "../protocols.js";
+import type * as runtime from "../runtime.js";
 import type * as system from "../system.js";
 import type * as tasks from "../tasks.js";
 
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   ops: typeof ops;
   projects: typeof projects;
   protocols: typeof protocols;
+  runtime: typeof runtime;
   system: typeof system;
   tasks: typeof tasks;
 }>;

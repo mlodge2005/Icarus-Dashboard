@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 
 const blockerHints: Record<string, string> = {
@@ -12,10 +12,12 @@ const blockerHints: Record<string, string> = {
 };
 
 export default function OpsPage() {
-  const snap = useQuery(api.ops.snapshot, {}) as any;
-  const createTask = useMutation(api.tasks.create);
-  const resolveBlocker = useMutation(api.tasks.resolveBlocker);
-  const removeTask = useMutation(api.tasks.remove);
+  const snap = useQuery(api.ops.snapshot as any, {}) as any;
+  const runtime = (useQuery(api.runtime.list as any, {}) as any[] | undefined) ?? [];
+  const probeRuntime = useAction(api.runtime.probe as any);
+  const createTask = useMutation(api.tasks.create as any);
+  const resolveBlocker = useMutation(api.tasks.resolveBlocker as any);
+  const removeTask = useMutation(api.tasks.remove as any);
   const [msg, setMsg] = useState("");
 
   if (!snap) return <div className="wrap">Loading...</div>;
@@ -24,8 +26,19 @@ export default function OpsPage() {
   return (
     <div className="wrap">
       <h1>Ops Command Center</h1>
-      <p><small>System triage view. Focus on blockers, resumptions, and operational flow.</small></p>
+      <p><small>System triage view. Includes OpenClaw/Gateway/Desktop connectivity indicators.</small></p>
       {msg ? <small>{msg}</small> : null}
+
+      <div className="card">
+        <div className="head">
+          <strong>Runtime Connectivity</strong>
+          <button onClick={async()=>{try{await probeRuntime({});setMsg("Runtime indicators refreshed.");}catch(e){setMsg((e as Error).message)}}}>Refresh Runtime</button>
+        </div>
+        {runtime.length===0 ? <small>No runtime signals yet. Click Refresh Runtime.</small> : runtime.map((r)=>(
+          <div key={r._id}><small>{r.label}</small> — <strong className={r.status==="online"?"status-success":r.status==="offline"?"status-error":"status-warning"}>{r.status}</strong> — <small>{r.medium}</small> — <small>{r.target}</small></div>
+        ))}
+      </div>
+
       {empty ? <div className="card">No active work yet. <button onClick={()=>void createTask({title:"Initial Task",description:"",status:"todo",priority:"medium",dueDate:new Date().toISOString(),tags:[],externalLinks:[],now:new Date().toISOString()})}>Create starter task</button></div> : null}
       <div className="grid">
         <section className="col"><h3>Now</h3>{snap.now.map((t: any) => <div className="card" key={t._id}>{t.title}</div>)}</section>
