@@ -31,10 +31,14 @@ export default function Documents() {
 
   const onUpload = async (file: File | null) => {
     if (!file) return;
-    const allowed = ["text/plain", "text/markdown", "image/png"];
     const extOk = /\.(txt|md|png)$/i.test(file.name);
-    if (!allowed.includes(file.type) || !extOk) {
+    if (!extOk) {
       setMsg("Upload blocked: only .txt, .md, .png are allowed.");
+      return;
+    }
+    const maxBytes = 500 * 1024;
+    if (file.size > maxBytes) {
+      setMsg(`Upload blocked: file too large (${Math.round(file.size/1024)}KB). Max 500KB.`);
       return;
     }
     const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -48,13 +52,13 @@ export default function Documents() {
       await upload({
         title: title || file.name,
         fileName: file.name,
-        fileType: file.type as any,
+        fileType: (file.type || (file.name.toLowerCase().endsWith(".png") ? "image/png" : file.name.toLowerCase().endsWith(".md") ? "text/markdown" : "text/plain")) as any,
         dataUrl,
         note: note || undefined,
         now: new Date().toISOString(),
         ...uploader,
       });
-      setMsg("Document uploaded to library.");
+      setMsg(`Document uploaded to library: ${file.name}`);
       setNote("");
     } catch (e) {
       setMsg((e as Error).message);

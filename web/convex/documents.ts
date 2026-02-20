@@ -61,6 +61,7 @@ export const upload = mutation({
       createdAt: a.now,
       updatedAt: a.now,
     });
+    await appendActivity(ctx, { eventType: "document_uploaded", entityType: "document", entityId: id, payload: JSON.stringify({ fileName: a.fileName, title: a.title }), createdAt: a.now });
     return id;
   },
 });
