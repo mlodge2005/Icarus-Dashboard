@@ -11,6 +11,9 @@ type CronJob = {
   state?: { nextRunAtMs?: number; lastRunAtMs?: number; lastStatus?: string };
   payload?: { kind?: string };
   sessionTarget?: string;
+  displayTitle?: string;
+  outcomeSummary?: string;
+  toolsUsed?: string[];
 };
 
 export default function CronJobsPage() {
@@ -57,7 +60,7 @@ export default function CronJobsPage() {
       {sorted.map((job) => (
         <div className="card" key={job.id}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-            <strong>{job.name ?? "(unnamed job)"}</strong>
+            <strong>{job.displayTitle ?? job.name ?? "(unnamed job)"}</strong>
             <small>{job.enabled ? "enabled" : "disabled"}</small>
           </div>
           <div><small>ID:</small> {job.id}</div>
@@ -65,6 +68,8 @@ export default function CronJobsPage() {
           <div><small>Schedule:</small> {job.schedule?.kind ?? "—"} {job.schedule?.expr ?? ""} {job.schedule?.tz ? `(${job.schedule.tz})` : ""}</div>
           <div><small>Session:</small> {job.sessionTarget ?? "—"}</div>
           <div><small>Payload:</small> {job.payload?.kind ?? "—"}</div>
+          <div><small>Outcome:</small> {job.outcomeSummary ?? "No runs yet."}</div>
+          <div><small>Tools:</small> {(job.toolsUsed && job.toolsUsed.length > 0) ? job.toolsUsed.join(", ") : "—"}</div>
           <div><small>Next run:</small> {job.state?.nextRunAtMs ? new Date(job.state.nextRunAtMs).toISOString() : "—"}</div>
           <div><small>Last run:</small> {job.state?.lastRunAtMs ? new Date(job.state.lastRunAtMs).toISOString() : "—"}</div>
           <div><small>Last status:</small> {job.state?.lastStatus ?? "—"}</div>
